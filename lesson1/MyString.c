@@ -8,55 +8,59 @@ char* Strcpy(char* destination, const char* source);
 char* Strcat(char* destination, const char* source);
 int Strcmp(const char* leftstr, const char* rightstr);
 
-// TODO удалить ассерты
-
 int main() {
-    printf("TEST: %d\n", strcmp("aa35", "atg35"));
+    printf("TEST: %d, %d\n", Strcmp("atg35", "aa35"), strcmp("atg35", "aa35"));
     return 0;
 }
 
-size_t Strlen(const char* str) {
-    assert(str);
 
+size_t Strlen(const char* str) {
     size_t i = 0;
+
     for (; str[i] != '\0'; i++) {;}
+
     return i;
 }
 
-int Puts(const char* str) { // TODO сделать проверку на ошибки
-    assert(str);
+
+int Puts(const char* str) {
+    int ch = 0;
 
     for (int i = 0; str[i] != '\0'; i++) {
-        putchar(str[i]);
+        if ((ch = putchar(str[i])) == EOF) {
+            return EOF;
+        }
     }
-    putchar('\n');
-    return EOF;
+
+    ch = putchar('\n');
+
+    return ch;
 }
 
-char* Strcpy(char* destination, const char* source) {
-    assert(destination);
-    assert(source);
 
+char* Strcpy(char* destination, const char* source) {
     for (int i = 0; source[i] != '\0' && destination[i] != '\0'; i++) {
         destination[i] = source[i];
     }
+
     return destination;
 }
 
-char* Strcat(char* destination, const char* source) { // TODO strlen в переменную
-    assert(destination);
-    assert(source);
 
+char* Strcat(char* destination, const char* source) {
     size_t i = 0;
-    for (i = 0; i < Strlen(destination); i++) {;}
+    size_t lenOfDestination = Strlen(destination);
+
+    for (i = 0; i < lenOfDestination; i++) {;}
+
     for (size_t j = 0; (destination[i + j] = source[j]) != '\0'; j++) {;}
 
     return destination;
 }
 
+
 int Strcmp(const char* leftstr, const char* rightstr) {
-    assert(leftstr);
-    assert(rightstr);
+    int i = 0;
 
     for (; leftstr[i] == rightstr[i] && leftstr[i] != '\0' && rightstr[i] != '\0'; i++) {;}
 
