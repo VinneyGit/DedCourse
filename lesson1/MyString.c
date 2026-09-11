@@ -1,7 +1,7 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
 size_t Strlen(const char* str);
 
@@ -16,6 +16,8 @@ int Strcmp(const char* leftstr, const char* rightstr);
 int Isdigit(int ch);
 
 int Isspace(int ch);
+
+int ToLower(int ch);
 
 int Atoi(const char* str);
 
@@ -82,7 +84,7 @@ int Strcmp(const char* leftstr, const char* rightstr) {
 
     for (; leftstr[i] == rightstr[i] && leftstr[i] != '\0' && rightstr[i] != '\0'; i++) {;}
 
-    return leftstr[i] - rightstr[i];
+    return leftstr[i] - rightstr[i]; // add len catcher and make return to (a < b) - (a > b)
 }
 
 
@@ -96,6 +98,13 @@ int Isspace(int ch) {
         return 1;
     }
     return 0;
+}
+
+int ToLower(int ch) {
+    if (ch >= 'A' && ch <= 'Z') {
+        return ch - 'A' + 'a';
+    }
+    return ch;
 }
 
 
@@ -126,8 +135,9 @@ int Atoi(const char* str) {
 }
 
 
-double Atof(const char* str) { // in process 1. add inf and nan handling 2. add
+double Atof(const char* str) {
     double number = 0.0;
+
     int i = 0;
     int sign = 1;
 
@@ -139,17 +149,80 @@ double Atof(const char* str) { // in process 1. add inf and nan handling 2. add
         sign = -1;
         i++;
     }
+    else if (str[i] == '+') {
+        i++;
+    }
+
+    if ((ToLower(str[i]) == 'n')
+        && (ToLower(str[i + 1]) == 'a')
+        && (ToLower(str[i + 2]) == 'n')) {
+
+
+        return sign > 0 ? NAN : -NAN;
+    }
+
+    if ((ToLower(str[i]) == 'i')
+        && (ToLower(str[i + 1]) == 'n')
+        && (ToLower(str[i + 2]) == 'f')) {
+
+        if ((ToLower(str[i + 3]) == 'i')
+            && (ToLower(str[i + 4]) == 'n')
+            && (ToLower(str[i + 5]) == 'i')
+            && (ToLower(str[i + 6]) == 't')
+            && (ToLower(str[i + 7]) == 'y')) {
+
+                return sign * INFINITY;
+            }
+        return sign * INFINITY;
+    }
+
+    while (Isdigit(str[i])) {
+        number *= 10;
+        number += str[i] - '0';
+        i++;
+    }
+
+    if (str[i] == '.') {
+        i++;
+        int numbersAfterDot = 0;
+        while (Isdigit(str[i])) {
+            numbersAfterDot++;
+            number += (str[i] - '0') / pow(10, numbersAfterDot);
+            i++;
+        }
+    }
+
+    int exponent = 0;
+    if (str[i] == 'e' || str[i] == 'E') {
+        i++
+
+        if (Isdigit(str[i])) {
+            exponent = 1;
+        }
+
+        while (Isdigit(str[i])) {
+            exponent *= 10;
+            exponent += str[i] - '0';
+            i++;
+        }
+
+        return sign * number * exponent;
+    }
 
     return sign * number;
 }
 
 
 char* Strdup(const char* str) {
-    char* duplicate = (char*)malloc(sizeof(str));
+    size_t size = Strlen(str) + 1;
+
+    char* duplicate = (char*)malloc(size * sizeof(char));
+
     Strcpy(duplicate, str);
+
     return duplicate;
 }
 /*
-getline 4
+getline 4 через scanf %m??? 
 +n
 */
