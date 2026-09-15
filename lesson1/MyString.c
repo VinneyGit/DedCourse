@@ -3,45 +3,43 @@
 #include <stdlib.h>
 #include <string.h>
 
-size_t Strlen(const char* str);
+#include "charmanip.c"
+
+
+//================================================================================================================
 
 int Puts(const char* str);
 
+//----------------------------------------------------------------------------------------------------------------
+
 char* Strcpy(char* destination, const char* source);
-
 char* Strcat(char* destination, const char* source);
+char* Strdup(const char* str);
 
-int Strcmp(const char* leftstr, const char* rightstr);
+size_t Strlen(const char* str);
+int Strcmp(const char* leftstr, const char* rightstr); // After using always use free()
 
-int Isdigit(int ch);
+//----------------------------------------------------------------------------------------------------------------
 
-int Isspace(int ch);
+char* Strncpy(char* destination, const char* source, size_t count);
+char* Strncat(char* destination, const char* source, size_t count);
+char* Strndup(const char* str, size_t count);
 
-int ToLower(int ch);
+size_t Strnlen(const char* str, size_t count);
+int Strncmp(const char* leftstr, const char* rightstr, size_t count); // After using always use free()
+
+//----------------------------------------------------------------------------------------------------------------
 
 int Atoi(const char* str);
-
 double Atof(const char* str);
 
-char* Strdup(const char* str); // After using always use free()
-
+//================================================================================================================
 
 int main() {
-    // char str[80] = "\0";
-    // scanf("%s", str);
-    printf("TEST: %g\n", atof("iNffe"));
     return 0;
 }
 
-
-size_t Strlen(const char* str) {
-    size_t i = 0;
-
-    for (; str[i] != '\0'; i++) {;}
-
-    return i;
-}
-
+//================================================================================================================
 
 int Puts(const char* str) {
     int ch = 0;
@@ -57,15 +55,13 @@ int Puts(const char* str) {
     return ch;
 }
 
+//================================================================================================================
 
 char* Strcpy(char* destination, const char* source) {
-    for (int i = 0; source[i] != '\0' && destination[i] != '\0'; i++) {
-        destination[i] = source[i];
-    }
+    for (int i = 0; (destination[i] = source[i]) != '\0'; i++) {;}
 
     return destination;
 }
-
 
 char* Strcat(char* destination, const char* source) {
     size_t i = 0;
@@ -78,35 +74,86 @@ char* Strcat(char* destination, const char* source) {
     return destination;
 }
 
+char* Strdup(const char* str) {
+    size_t size = Strlen(str) + 1;
 
-int Strcmp(const char* leftstr, const char* rightstr) {
+    char* duplicate = (char*)calloc(size, sizeof(char));
+
+    Strcpy(duplicate, str);
+
+    return duplicate;
+}
+
+//----------------------------------------------------------------------------------------------------------------
+
+size_t Strlen(const char* str) {
+    size_t i = 0;
+
+    for (; str[i] != '\0'; i++) {;}
+
+    return i;
+}
+
+int Strcmp(const char* l, const char* r) {
     int i = 0;
 
-    for (; leftstr[i] == rightstr[i] && leftstr[i] != '\0' && rightstr[i] != '\0'; i++) {;}
+    for (; l[i] == r[i] && l[i] != '\0' && r[i] != '\0'; i++) {;}
 
-    return leftstr[i] - rightstr[i]; // add len catcher and make return to (a < b) - (a > b)
+    return l[i] - r[i]; // add len catcher and make return to (a < b) - (a > b)
 }
 
+//================================================================================================================
 
-int Isdigit(int ch) {
-    return (ch >= '0' && ch <= '9') ? 1 : 0;
+char* Strncpy(char* destination, const char* source, size_t count) {
+    for (int i = 0; i < count && (destination[i] = source[i]) != '\0'; i++) {;}
+
+    return destination;
 }
 
+char* Strncat(char* destination, const char* source, size_t count) {
+    size_t i = 0;
+    size_t lenOfDestination = Strlen(destination);
 
-int Isspace(int ch) {
-    if ((ch >= '\t' && ch <= '\r') || ch == ' ') {
-        return 1;
+    for (i = 0; i < lenOfDestination ; i++) {;}
+
+    for (size_t j = 0; j < count && (destination[i + j] = source[j]) != '\0'; j++) {;}
+
+    return destination;
+}
+
+char* Strndup(const char* str, size_t count) {
+    size_t size = Strnlen(str, count);
+
+    char* duplicate = (char*)calloc(size + 1, sizeof(char));
+
+    Strncpy(duplicate, str, size);
+
+    return duplicate;
+}
+
+//----------------------------------------------------------------------------------------------------------------
+
+size_t Strnlen(const char* str, size_t count) {
+    size_t i = 0;
+
+    for (; str[i] != '\0' && i < count; i++) {;}
+
+    return i;
+}
+
+int Strncmp(const char* l, const char* r, size_t count) {
+    if(count == 0) {
+        return 0;
     }
-    return 0;
+
+    int i = 0;
+
+    for (; i < count && l[i] == r[i] && l[i] != '\0' && r[i] != '\0'; i++) {;}
+
+    return l[i] - r[i]; // add len catcher and make return to (a < b) - (a > b)
 }
 
-int ToLower(int ch) {
-    if (ch >= 'A' && ch <= 'Z') {
-        return ch - 'A' + 'a';
-    }
-    return ch;
-}
-
+//================================================================================================================
 
 int Atoi(const char* str) {
     int number = 0;
@@ -139,7 +186,7 @@ double Atof(const char* str) {
     double number = 0.0;
 
     int i = 0;
-    int sign = 1;
+    float sign = 1;
 
     while (Isspace(str[i])) {
         i++;
@@ -194,7 +241,17 @@ double Atof(const char* str) {
 
     int exponent = 0;
     if (str[i] == 'e' || str[i] == 'E') {
-        i++
+        i++;
+
+        int signOfExp = 1;
+
+        if (str[i] == '-') {
+            signOfExp = -1;
+            i++;
+        }
+        else if (str[i] == '+') {
+            i++;
+        }
 
         if (Isdigit(str[i])) {
             exponent = 1;
@@ -206,23 +263,12 @@ double Atof(const char* str) {
             i++;
         }
 
-        return sign * number * exponent;
+        return sign * number * pow(10, signOfExp, exponent);
     }
 
     return sign * number;
 }
 
-
-char* Strdup(const char* str) {
-    size_t size = Strlen(str) + 1;
-
-    char* duplicate = (char*)malloc(size * sizeof(char));
-
-    Strcpy(duplicate, str);
-
-    return duplicate;
-}
 /*
-getline 4 через scanf %m??? 
-+n
+// TODO getline 4 через scanf %m???
 */
