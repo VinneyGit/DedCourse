@@ -18,6 +18,7 @@ char* Strdup(const char* str);
 
 size_t Strlen(const char* str);
 int Strcmp(const char* leftstr, const char* rightstr); // After using always use free()
+// TODO Strchr
 
 //----------------------------------------------------------------------------------------------------------------
 
@@ -27,6 +28,7 @@ char* Strndup(const char* str, size_t count);
 
 size_t Strnlen(const char* str, size_t count);
 int Strncmp(const char* leftstr, const char* rightstr, size_t count); // After using always use free()
+// TODO Strnchr
 
 //----------------------------------------------------------------------------------------------------------------
 
@@ -35,9 +37,19 @@ double Atof(const char* str);
 
 //================================================================================================================
 
+void print_hidden_string(const char *str); // TODO нагажено, убрать
+
+/*
 int main() {
+    printf("%d %d\n", Strcmp("wf", "af"), strcmp("wf", "af"));
+    printf("%d %d\n", Strcmp("wf", "wf"), strcmp("wf", "wf"));
+    printf("%d %d\n", Strcmp("af", "wf"), strcmp("af", "wf"));
+    printf("%d %d\n", Strcmp("wf", "wff"), strcmp("af", "wf"));
+
+
     return 0;
 }
+*/
 
 //================================================================================================================
 
@@ -99,13 +111,13 @@ int Strcmp(const char* l, const char* r) {
 
     for (; l[i] == r[i] && l[i] != '\0' && r[i] != '\0'; i++) {;}
 
-    return l[i] - r[i]; // add len catcher and make return to (a < b) - (a > b)
+    return (l[i] > r[i]) - (l[i] < r[i]); // add len catcher and make return to (a < b) - (a > b)
 }
 
 //================================================================================================================
 
 char* Strncpy(char* destination, const char* source, size_t count) {
-    for (int i = 0; i < count && (destination[i] = source[i]) != '\0'; i++) {;}
+    for (size_t i = 0; i < count && (destination[i] = source[i]) != '\0'; i++) {;}
 
     return destination;
 }
@@ -146,11 +158,11 @@ int Strncmp(const char* l, const char* r, size_t count) {
         return 0;
     }
 
-    int i = 0;
+    size_t i = 0;
 
     for (; i < count && l[i] == r[i] && l[i] != '\0' && r[i] != '\0'; i++) {;}
 
-    return l[i] - r[i]; // add len catcher and make return to (a < b) - (a > b)
+    return (l[i] > r[i]) - (l[i] < r[i]); // add len catcher and make return to (a < b) - (a > b)
 }
 
 //================================================================================================================
@@ -263,7 +275,7 @@ double Atof(const char* str) {
             i++;
         }
 
-        return sign * number * pow(10, signOfExp, exponent);
+        return sign * number * pow(10, signOfExp * exponent);
     }
 
     return sign * number;
@@ -272,3 +284,36 @@ double Atof(const char* str) {
 /*
 // TODO getline 4 через scanf %m???
 */
+
+
+void print_hidden_string(const char *str) { // TODO нагажено, убрать
+    if (!str) return;
+
+    while (*str) {
+        switch (*str) {
+            case '\n': printf("\033[1;31m\\n\033[0m");  break; // Перевод строки
+            case '\t': printf("\033[1;31m\\t\033[0m");  break; // Табуляция
+            case '\r': printf("\033[1;31m\\r\033[0m");  break; // Возврат каретки
+            case '\b': printf("\033[1;31m\\b\033[0m");  break; // Забой (Backspace)
+            case '\a': printf("\033[1;31m\\a\033[0m");  break; // Гудок (Alert)
+            case '\v': printf("\033[1;31m\\v\033[0m");  break; // Вертикальная табуляция
+            case '\f': printf("\033[1;31m\\f\033[0m");  break; // Перевод страницы
+            case '\\': printf("\033[1;31m\\\\\033[0m"); break; // Сам бэкслеш
+            case ' ':
+                // Опционально: можно подсветить пробел, чтобы видеть их количество
+                printf(" ");
+                break;
+            default:
+                // Если символ непечатный (ASCII < 32), выводим его код в восьмеричном формате
+                if (*str < 32) {
+                    printf("\033[1;31m\\%03o\033[0m", (unsigned char)*str);
+                } else {
+                    putchar(*str); // Обычный печатный символ
+                }
+                break;
+        }
+        str++;
+    }
+    printf("\n"); // Перевод строки в конце вывода всей функции
+}
+

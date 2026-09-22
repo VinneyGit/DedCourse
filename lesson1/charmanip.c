@@ -2,6 +2,8 @@ int Isdigit(int ch);
 int Isspace(int ch);
 int ToLower(int ch);
 
+//================================================================================================================
+
 int Isdigit(int ch) {
     return (ch >= '0' && ch <= '9') ? 1 : 0;
 }

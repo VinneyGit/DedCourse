@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+//================================================================================================================
+
 void PrintArray(int array[], size_t size);
 
 void SwapInt(int* x, int* y);
@@ -8,6 +10,7 @@ void BubbleSort(int array[], size_t size);
 
 void QuickSort(int array[], size_t leftEdge, size_t rightEdge);
 
+//================================================================================================================
 
 int main() {
 
@@ -22,6 +25,8 @@ int main() {
     return 0;
 }
 
+//================================================================================================================
+
 void PrintArray(int array[], size_t size) {
     for (size_t i = 0; i < size; i++) {
         printf("%d ", array[i]);
@@ -29,7 +34,7 @@ void PrintArray(int array[], size_t size) {
     printf("\n");
 }
 
-
+//----------------------------------------------------------------------------------------------------------------
 
 void SwapInt(int* x, int* y) {
     int temp = *y;

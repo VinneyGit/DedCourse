@@ -1,9 +1,13 @@
 #include <stdio.h>
 
+//================================================================================================================
+
 // void PrintMtx1(int data[][], size_t sizeX, size_t sizeY);
 void PrintMtx2(int* data, size_t sizeX, size_t sizeY);
 void PrintMtx3(int* data, size_t sizeX, size_t sizeY);
-void PrintTriangleArray();
+void PrintTriangleArray(int* data, size_t lenOfSide);
+
+//================================================================================================================
 
 int main() {
 
@@ -35,6 +39,8 @@ int main() {
     return 0;
 }
 
+//================================================================================================================
+
 /*
 void PrintMtx1(int data[][], size_t sizeX, size_t sizeY) {
     for (int y = 0; y < sizeY; y++) {
@@ -64,6 +70,14 @@ void PrintMtx3(int* data, size_t sizeX, size_t sizeY) {
     }
 }
 
-void PrintTriangleArray() {}
+//----------------------------------------------------------------------------------------------------------------
+
+void PrintTriangleArray(int* data, size_t lenOfSide) {
+    for (size_t y = 0; i < lenOfSide; i++) {
+        for (size_t x = ) {
+            printf(" ");
+        }
+    }
+}
 
 // TODO сделать вывод бинома ньютона

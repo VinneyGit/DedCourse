@@ -5,8 +5,11 @@
 #include <time.h>
 #include <stdint.h>
 
+
 typedef const int  cint;
 typedef const void cvoid;
+
+//================================================================================================================
 
 void PrintArray(int array[], size_t size);
 
@@ -19,7 +22,9 @@ void BubbleSort(int array[], size_t size, int (*Comparator)(cvoid* a, cvoid* b))
 
 void VoidBubbleSort(void* data, size_t size, size_t sizeOfElement, int Comparator(cvoid* a, cvoid* b));
 
+//================================================================================================================
 
+/*
 int main() {
     srand((unsigned int)time(NULL));
 
@@ -43,6 +48,9 @@ int main() {
 
     return 0;
 }
+*/
+
+//================================================================================================================
 
 void PrintArray(int array[], size_t size) {
     for (size_t i = 0; i < size; i++) {
@@ -51,6 +59,7 @@ void PrintArray(int array[], size_t size) {
     printf("\n");
 }
 
+//----------------------------------------------------------------------------------------------------------------
 
 int ComparatorVer1(cint a, cint b) {
     return (a > b) - (a < b);
@@ -70,7 +79,7 @@ int ComparatorVer3(cvoid* ptr_a, cvoid* ptr_b) {
     return (a > b) - (a < b);
 }
 
-
+//----------------------------------------------------------------------------------------------------------------
 
 void SwapInt(int* x, int* y) {
     int temp = *y;
@@ -92,6 +101,8 @@ void BubbleSort(int array[], size_t size, int (*Comparator)(cvoid* a, cvoid* b))
         }
     }
 }
+
+//----------------------------------------------------------------------------------------------------------------
 
 void VoidBubbleSort(void* array, size_t size, size_t sizeOfElement, int Comparator(cvoid* a, cvoid* b)) {
     for (size_t n = 0; n < size; n++) {
