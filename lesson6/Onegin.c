@@ -22,31 +22,30 @@ struct String {
     size_t len;
 };
 
-// TODO add sorting by original buffer
 // TODO добавить структуру с данными файла свою
 // TODO функция удаления элемента массива
-// TODO добавить везде const
 // TODO добавить assert
 // TODO добавить в компаратор первые буквы цифр
 // TODO добавить функцию удаления всех заданных символов из строки
 // TODO REMAKE TO WITHOUT F OR FIX \r
 // TODO myfree()
 // TODO add errors opening files ??? ИДЕЯ ПЕРЕДАВАТЬ ЧИТАЕМЫЙ ПАРАМЕТР ИЗ СТАТС КАК ПЕРЕМЕННУЮ
+// TODO add files output function
 
 //================================================================================================================
 
 size_t ReadFileSize(const char* name);
-size_t ReadFromFileToBuffer(const char* name, char* buffer, size_t bufferSize);
+size_t ReadFromFileToBuffer(const char* name, char* buffer, const size_t bufferSize);
 
 //----------------------------------------------------------------------------------------------------------------
 
 size_t BufferSplit(char* buffer);
-void LinesIndexing(char* buffer, size_t bufferSize, String* indexes);
+void LinesIndexing(char* buffer, size_t bufferSize, String* indexes, int* maxLen);
 // TODO cutting last space lines???
 
 //----------------------------------------------------------------------------------------------------------------
 
-void WriteToFile(const char* name, size_t linesCount, String* index);
+void WriteToFile(const char* name, size_t linesCount, const String* index, int maxLen);
 
 //----------------------------------------------------------------------------------------------------------------
 
@@ -68,17 +67,18 @@ int main() {
 
     printf("linesCount: %5zu\n======================================\n", linesCount);
 
+    int maxLineLen = 0;
 
-    LinesIndexing(buffer, bufferSize, indexes);
+    LinesIndexing(buffer, bufferSize, indexes, &maxLineLen);
 
     VoidBubbleSort(indexes, linesCount, sizeof(String), &ComparatorBegin);
-    WriteToFile(OUTPUT_PATH, linesCount, indexes);
+    WriteToFile(OUTPUT_PATH, linesCount, indexes, 0);
 
     VoidBubbleSort(indexes, linesCount, sizeof(String), &ComparatorEnd);
-    WriteToFile(OUTPUT_PATH, linesCount, indexes);
+    WriteToFile(OUTPUT_PATH, linesCount, indexes, maxLineLen);
 
     VoidBubbleSort(indexes, linesCount, sizeof(String), &ComparatorOriginal);
-    WriteToFile(OUTPUT_PATH, linesCount, indexes);
+    WriteToFile(OUTPUT_PATH, linesCount, indexes, 0);
 
     free(buffer);
     free(indexes);
@@ -128,7 +128,7 @@ size_t BufferSplit(char* buffer) {
     return linesCount;
 }
 
-void LinesIndexing(char* buffer, size_t bufferSize, String* indexes) {
+void LinesIndexing(char* buffer, size_t bufferSize, String* indexes, int* maxLen) {
     size_t position = 0;
     size_t stringNum = 0;
 
@@ -144,20 +144,22 @@ void LinesIndexing(char* buffer, size_t bufferSize, String* indexes) {
 
         indexes[stringNum].len = len;
 
+        *maxLen = max(len, *maxLen);
+
         stringNum++;
     }
 }
 
 //================================================================================================================
 
-void WriteToFile(const char* name, size_t linesCount, String* indexes) {// TODO Remake
+void WriteToFile(const char* name, size_t linesCount, const String* indexes, int maxLen) {
     FILE* file = fopen(name, "a");
 
     for (size_t i = 0; i < linesCount; i++) {
         if (indexes[i].len == 0) {
             continue;
         }
-        fprintf(file, "%70s\n", indexes[i].str);
+        fprintf(file, "%*s\n", maxLen, indexes[i].str);
     }
 
     fprintf(file, "============================================================================\n");
