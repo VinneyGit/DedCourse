@@ -50,8 +50,9 @@ void WriteToFile(const char* name, size_t linesCount, String* index);
 
 //----------------------------------------------------------------------------------------------------------------
 
-int ComparatorBegining(const void* ptr_a, const void* ptr_b);
-int ComparatorFinish(const void* ptr_a, const void* ptr_b);
+int ComparatorBegin(const void* ptr_a, const void* ptr_b);
+int ComparatorEnd(const void* ptr_a, const void* ptr_b);
+int ComparatorOriginal(const void* ptr_a, const void* ptr_b);
 
 //================================================================================================================
 
@@ -70,14 +71,13 @@ int main() {
 
     LinesIndexing(buffer, bufferSize, indexes);
 
-    VoidBubbleSort(indexes, linesCount, sizeof(String), &ComparatorBegining);
+    VoidBubbleSort(indexes, linesCount, sizeof(String), &ComparatorBegin);
+    WriteToFile(OUTPUT_PATH, linesCount, indexes);
 
-    /*
-    for (size_t i = 0; i < linesCount; i++) {
-        printf("%s\n", indexes[i].str);
-    }
-    */
+    VoidBubbleSort(indexes, linesCount, sizeof(String), &ComparatorEnd);
+    WriteToFile(OUTPUT_PATH, linesCount, indexes);
 
+    VoidBubbleSort(indexes, linesCount, sizeof(String), &ComparatorOriginal);
     WriteToFile(OUTPUT_PATH, linesCount, indexes);
 
     free(buffer);
@@ -150,22 +150,24 @@ void LinesIndexing(char* buffer, size_t bufferSize, String* indexes) {
 
 //================================================================================================================
 
-void WriteToFile(const char* name, size_t linesCount, String* indexes) {
-    FILE* file = fopen(name, "w");
+void WriteToFile(const char* name, size_t linesCount, String* indexes) {// TODO Remake
+    FILE* file = fopen(name, "a");
 
     for (size_t i = 0; i < linesCount; i++) {
         if (indexes[i].len == 0) {
             continue;
         }
-        fprintf(file, "%s\n", indexes[i].str);
+        fprintf(file, "%70s\n", indexes[i].str);
     }
+
+    fprintf(file, "============================================================================\n");
 
     fclose(file);
 }
 
 //================================================================================================================
 
-int ComparatorBegining(const void* ptr_a, const void* ptr_b) {
+int ComparatorBegin(const void* ptr_a, const void* ptr_b) {
     const String a = *(const String*)ptr_a;
     const String b = *(const String*)ptr_b;
 
@@ -209,7 +211,7 @@ int ComparatorBegining(const void* ptr_a, const void* ptr_b) {
     return (ToLower(str_a[i_a]) > ToLower(str_b[i_b])) - (ToLower(str_a[i_a]) < ToLower(str_b[i_b]));
 }
 
-int ComparatorFinish(const void* ptr_a, const void* ptr_b) {
+int ComparatorEnd(const void* ptr_a, const void* ptr_b) {
     const String a = *(const String*)ptr_a;
     const String b = *(const String*)ptr_b;
 
@@ -231,9 +233,39 @@ int ComparatorFinish(const void* ptr_a, const void* ptr_b) {
         return 0;
     }
 
-    return 0;
+    size_t i_a = len_a - 1;
+    size_t i_b = len_b - 1;
+
+    while (i_a > 0 && i_b > 0) {
+        if (!isalpha(str_a[i_a])) {
+            i_a--;
+            continue;
+        }
+        if (!isalpha(str_b[i_b])) {
+            i_b--;
+            continue;
+        }
+        if (ToLower(str_a[i_a]) != ToLower(str_b[i_b])) {
+            break;
+        }
+        i_a--;
+        i_b--;
+    }
+
+    return (ToLower(str_a[i_a]) > ToLower(str_b[i_b])) - (ToLower(str_a[i_a]) < ToLower(str_b[i_b]));
 }
 
+int ComparatorOriginal(const void* ptr_a, const void* ptr_b) {
+    const String a = *(const String*)ptr_a;
+    const String b = *(const String*)ptr_b;
+
+    const char* str_a = a.str;
+    const char* str_b = b.str;
+
+    return (str_a > str_b) - (str_a < str_b);
+
+    return 0;
+}
 //================================================================================================================
 //================================================================================================================
 //================================================================================================================
