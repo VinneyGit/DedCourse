@@ -37,13 +37,13 @@ size_t ReadFromFileToBuffer(const char* name, char* buffer, const size_t bufferS
 //----------------------------------------------------------------------------------------------------------------
 
 size_t BufferSplit(char* buffer);
-void LinesIndexing(char* buffer, size_t bufferSize, String* indexes, int* maxLen);
+void LinesIndexing(char* buffer, const size_t bufferSize, String* indexes, int* maxLen);
 // TODO cutting last space lines???
 
 //----------------------------------------------------------------------------------------------------------------
 
 void MakeOutputFile(const char* name);
-void WriteToFile(const char* name, size_t linesCount, const String* index, int maxLen);
+void WriteToFile(const char* name, const size_t linesCount, const String* index, int maxLen);
 
 //----------------------------------------------------------------------------------------------------------------
 
@@ -99,7 +99,7 @@ size_t ReadFileSize(const char* name) {
     return filestats.st_size;
 }
 
-size_t ReadFromFileToBuffer(const char* name, char* buffer, size_t bufferSize) {
+size_t ReadFromFileToBuffer(const char* name, char* buffer, const size_t bufferSize) {
     assert(name);
     assert(buffer);
 
@@ -135,7 +135,7 @@ size_t BufferSplit(char* buffer) {
     return linesCount;
 }
 
-void LinesIndexing(char* buffer, size_t bufferSize, String* indexes, int* maxLen) {
+void LinesIndexing(char* buffer, const size_t bufferSize, String* indexes, int* maxLen) {
     assert(buffer);
     assert(indexes);
 
@@ -174,7 +174,7 @@ void MakeOutputFile(const char* name) {
     fclose(file);
 }
 
-void WriteToFile(const char* name, size_t linesCount, const String* indexes, int maxLen) {
+void WriteToFile(const char* name, const size_t linesCount, const String* indexes, int maxLen) {
     assert(name);
     assert(indexes);
 
