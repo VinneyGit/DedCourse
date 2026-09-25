@@ -45,8 +45,8 @@ void    LinesIndexing        (Text* text);
 
 //------------------------------------------------------------------------------
 
-void    CreateOutputFile     (const char* fileName);
-void    WriteToFile          (const char* fileName, const size_t linesAmount,
+FILE*   CreateOutputFile     (const char* fileName);
+void    WriteToFile          (FILE* file, const size_t linesAmount,
                               const String* lines, int maxLineLen            );
 
 //------------------------------------------------------------------------------
@@ -99,18 +99,18 @@ int main(int argc, char** argv) {
         printf("%d\n", text.lines[i].len);
     } */
 
-    CreateOutputFile(OUTPUT_PATH);
+    FILE* OutputFile = CreateOutputFile(OUTPUT_PATH);
 
     qsort(text.lines, text.linesAmount, sizeof(String), &ComparatorBegin);
-    WriteToFile(OUTPUT_PATH, text.linesAmount, text.lines, 0);
+    WriteToFile(OutputFile, text.linesAmount, text.lines, 0);
 
     qsort(text.lines, text.linesAmount, sizeof(String), &ComparatorEnd);
-    WriteToFile(OUTPUT_PATH, text.linesAmount, text.lines, text.maxLineLen);
+    WriteToFile(OutputFile, text.linesAmount, text.lines, text.maxLineLen);
 
-    qsort(text.lines, text.linesAmount, sizeof(String), &ComparatorOriginal);
-    WriteToFile(OUTPUT_PATH, text.linesAmount, text.lines, 0);
+    VoidBubbleSort(text.lines, text.linesAmount, sizeof(String), &ComparatorOriginal);
+    WriteToFile(OutputFile, text.linesAmount, text.lines, 0);
 
-
+    fclose(OutputFile);
 
     free(text.buffer);
     free(text.lines);
@@ -228,7 +228,7 @@ void LinesIndexing(Text* text) {
 
 //==============================================================================
 
-void CreateOutputFile(const char* fileName) {
+FILE* CreateOutputFile(const char* fileName) {
     assert(fileName);
 
     FILE* file = fopen(fileName, "w");
@@ -237,15 +237,13 @@ void CreateOutputFile(const char* fileName) {
         printf("ERROR WHILE CREATING OUTPUT FILE\n");
     }
 
-    fclose(file);
+    return file;
 }
 
-void WriteToFile(const char* fileName, const size_t linesAmount,
+void WriteToFile(FILE* file, const size_t linesAmount,
                  const String* lines, int maxLineLen            ) { // TODO add null string print and name of sorting
-    assert(fileName);
+    assert(file);
     assert(lines);
-
-    FILE* file = fopen(fileName, "a");
 
     if(file == NULL) {
         printf("ERROR WHILE OPENING OUTPUT FILE\n");
@@ -259,8 +257,6 @@ void WriteToFile(const char* fileName, const size_t linesAmount,
     }
 
     fprintf(file, "========================================================\n");
-
-    fclose(file);
 }
 
 //==============================================================================
