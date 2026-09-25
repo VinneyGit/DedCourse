@@ -153,21 +153,6 @@ size_t ReadFromFileToBuffer(const char* fileName, char* buffer,
 
 //==============================================================================
 
-size_t BufferSplit(char* buffer) { // TODO UNITE indexing and \r catching
-    assert(buffer);
-
-    size_t linesAmount = 0;
-
-    while((buffer = strchr(buffer, '\n')) != NULL) {
-        *buffer = '\0';
-        buffer++;
-
-        linesAmount++;
-    }
-
-    return linesAmount;
-}
-
 void LinesIndexing(Text* text) {
     assert(text);
     assert(text->buffer);
