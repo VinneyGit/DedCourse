@@ -26,7 +26,7 @@ struct Text {
     size_t  symbolsRead;
     String* lines;
     size_t  linesAmount;
-    int  maxLineLen;
+    int     maxLineLen;
 };
 
 // TODO ??? add windows CRLF
@@ -42,8 +42,7 @@ size_t  ReadFromFileToBuffer (const char* fileName, char* buffer,
 //------------------------------------------------------------------------------
 
 size_t  BufferSplit          (char* buffer);
-void    LinesIndexing        (char* buffer, const size_t bufferSize,
-                              String* lines, int* maxLineLen        );
+void    LinesIndexing        (Text* text);
 
 //------------------------------------------------------------------------------
 
@@ -89,14 +88,12 @@ int main(int argc, char** argv) {
     text.buffer = (char*)calloc(text.bufferSize, sizeof(char));
     text.symbolsRead = ReadFromFileToBuffer(INPUT_PATH, text.buffer, text.bufferSize);
 
-    text.linesAmount = BufferSplit(text.buffer);
-    text.lines = (String*)calloc(text.linesAmount, sizeof(String));
+    // text.linesAmount = BufferSplit(text.buffer);
+    // text.lines = (String*)calloc(text.linesAmount, sizeof(String));
+
+    LinesIndexing(&text);
 
     printf("linesAmount: %5zu\n============================\n", text.linesAmount);
-
-
-
-    LinesIndexing(text.buffer, text.bufferSize, text.lines, &(text.maxLineLen));
 
     CreateOutputFile(OUTPUT_PATH);
 
@@ -167,30 +164,64 @@ size_t BufferSplit(char* buffer) { // TODO UNITE indexing and \r catching
     return linesAmount;
 }
 
-void LinesIndexing(char* buffer, const size_t bufferSize, String* lines,
-                   int* maxLineLen                                   ) {
-    assert(buffer);
-    assert(lines);
+void LinesIndexing(Text* text) {
+    assert(text);
+    assert(text->buffer);
+    assert(text->bufferSize);
+
+    size_t linesAmount = 0;
+
+    size_t sizeOfLinesArray = 1;
+    if ((text->lines = (String*)calloc(sizeOfLinesArray, sizeof(String))) == NULL) {
+        printf("ERROR WITH CALLOC\n");
+        return;
+    }
+
+    printf("FIRST CALLOC WAS\n");
 
     size_t position = 0;
     size_t stringNum = 0;
 
-    while (position < bufferSize) {
-        int len = 0;
-        lines[stringNum].str = buffer + position;
+    String* newLines = NULL;
+    size_t newSizeOfLinesArray = 0;
 
-        while (buffer[position] != '\0') {
+    while (position < text->bufferSize && text->buffer[position] != '\0') {
+        if (sizeOfLinesArray - linesAmount <= 2) {
+            newSizeOfLinesArray = sizeOfLinesArray * 2;
+            if((newLines = (String*)realloc(text->lines,
+                               newSizeOfLinesArray * sizeof(String))) == NULL) {
+                printf("ERROR WITH REALLOC\n");
+                return;
+            }
+        }
+
+        text->lines = newLines;
+        sizeOfLinesArray = newSizeOfLinesArray;
+
+
+        int len = 0;
+        text->lines[stringNum].str = text->buffer + position;
+
+        while (text->buffer[position] != '\n') {
+            text->buffer[position] = '\0';
             position++;
             len++;
+
+
         }
+
         position++;
 
-        lines[stringNum].len = len;
+        linesAmount++;
 
-        *maxLineLen = max(len, *maxLineLen);
+        text->lines[stringNum].len = len;
+
+        text->maxLineLen = max(len, text->maxLineLen);
 
         stringNum++;
     }
+
+    text->linesAmount = linesAmount;
 }
 
 //==============================================================================

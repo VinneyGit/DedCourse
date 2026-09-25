@@ -84,13 +84,13 @@ ssize_t Getline(char** lineptr, size_t* n) {
 
     if (*lineptr == NULL) {
         *n = 1;
-        if ((*lineptr = (char*)malloc(*n * sizeof(char))) == NULL) {
+        if ((*lineptr = (char*)calloc(*n, sizeof(char))) == NULL) {
             return -1;
         }
     }
 
     char* currentchar = *lineptr;
-    char* newptr = 0;
+    char* newptr = NULL;
     size_t newlen = 0;
 
     int c = 0;
