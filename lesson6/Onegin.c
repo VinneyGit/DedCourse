@@ -226,7 +226,8 @@ FILE* CreateOutputFile(const char* fileName) {
 }
 
 void WriteToFile(FILE* file, const size_t linesAmount,
-                 const String* lines, int maxLineLen            ) { // TODO add null string print and name of sorting
+                 const String* lines, int maxLineLen  ) {
+                 // TODO add null string print and name of sorting
     assert(file);
     assert(lines);
 
