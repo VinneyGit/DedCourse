@@ -31,7 +31,6 @@ struct Text {
 
 // TODO ??? add windows CRLF
 // TODO ??? Filedescriptor
-// TODO make struct for buffer with number of lines and other
 
 //==============================================================================
 
@@ -86,14 +85,19 @@ int main(int argc, char** argv) {
     printf("Size of file in bytes is: %zu\n", text.bufferSize);
 
     text.buffer = (char*)calloc(text.bufferSize, sizeof(char));
-    text.symbolsRead = ReadFromFileToBuffer(INPUT_PATH, text.buffer, text.bufferSize);
-
-    // text.linesAmount = BufferSplit(text.buffer);
-    // text.lines = (String*)calloc(text.linesAmount, sizeof(String));
+    text.symbolsRead = ReadFromFileToBuffer(INPUT_PATH,
+                                                text.buffer, text.bufferSize);
 
     LinesIndexing(&text);
 
-    printf("linesAmount: %5zu\n============================\n", text.linesAmount);
+    printf("linesAmount: %5zu\n==========================\n", text.linesAmount);
+
+    /* for (size_t i = 0; i < text.linesAmount; i++) {
+        if (lines[i].len == 0) {
+            continue;
+        }
+        printf("%d\n", text.lines[i].len);
+    } */
 
     CreateOutputFile(OUTPUT_PATH);
 
@@ -172,7 +176,8 @@ void LinesIndexing(Text* text) {
     size_t linesAmount = 0;
 
     size_t sizeOfLinesArray = 1;
-    if ((text->lines = (String*)calloc(sizeOfLinesArray, sizeof(String))) == NULL) {
+    if ((text->lines = (String*)calloc(sizeOfLinesArray,
+                                                    sizeof(String))) == NULL) {
         printf("ERROR WITH CALLOC\n");
         return;
     }
@@ -198,17 +203,14 @@ void LinesIndexing(Text* text) {
         text->lines = newLines;
         sizeOfLinesArray = newSizeOfLinesArray;
 
-
         int len = 0;
         text->lines[stringNum].str = text->buffer + position;
 
         while (text->buffer[position] != '\n') {
-            text->buffer[position] = '\0';
             position++;
             len++;
-
-
         }
+        text->buffer[position] = '\0';
 
         position++;
 
