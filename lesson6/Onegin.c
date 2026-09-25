@@ -23,8 +23,10 @@ struct String {
 struct Text {
     char*   buffer;
     size_t  bufferSize;
+    size_t  symbolsRead;
+    String* lines;
     size_t  linesAmount;
-    size_t  f;
+    int  maxLineLen;
 };
 
 // TODO ??? add windows CRLF
@@ -79,38 +81,38 @@ int main(int argc, char** argv) {
     printf("Output: %s\n", OUTPUT_PATH);
 
 
+    Text text = {};
 
-    size_t bufferSize = ReadFileSize(INPUT_PATH);
-    printf("Size of file in bytes is: %zu\n", bufferSize);
+    text.bufferSize = ReadFileSize(INPUT_PATH);
+    printf("Size of file in bytes is: %zu\n", text.bufferSize);
 
-    char* buffer = (char*)calloc(bufferSize, sizeof(char));
-    bufferSize = ReadFromFileToBuffer(INPUT_PATH, buffer, bufferSize);
+    text.buffer = (char*)calloc(text.bufferSize, sizeof(char));
+    text.symbolsRead = ReadFromFileToBuffer(INPUT_PATH, text.buffer, text.bufferSize);
 
-    size_t linesAmount = BufferSplit(buffer);
-    struct String* lines = (String*)calloc(linesAmount, sizeof(String));
+    text.linesAmount = BufferSplit(text.buffer);
+    text.lines = (String*)calloc(text.linesAmount, sizeof(String));
 
-    printf("linesAmount: %5zu\n============================\n", linesAmount);
+    printf("linesAmount: %5zu\n============================\n", text.linesAmount);
 
 
 
-    int maxLineLen = 0;
-    LinesIndexing(buffer, bufferSize, lines, &maxLineLen);
+    LinesIndexing(text.buffer, text.bufferSize, text.lines, &(text.maxLineLen));
 
     CreateOutputFile(OUTPUT_PATH);
 
-    VoidBubbleSort(lines, linesAmount, sizeof(String), &ComparatorBegin);
-    WriteToFile(OUTPUT_PATH, linesAmount, lines, 0);
+    qsort(text.lines, text.linesAmount, sizeof(String), &ComparatorBegin);
+    WriteToFile(OUTPUT_PATH, text.linesAmount, text.lines, 0);
 
-    VoidBubbleSort(lines, linesAmount, sizeof(String), &ComparatorEnd);
-    WriteToFile(OUTPUT_PATH, linesAmount, lines, maxLineLen);
+    qsort(text.lines, text.linesAmount, sizeof(String), &ComparatorEnd);
+    WriteToFile(OUTPUT_PATH, text.linesAmount, text.lines, text.maxLineLen);
 
-    VoidBubbleSort(lines, linesAmount, sizeof(String), &ComparatorOriginal);
-    WriteToFile(OUTPUT_PATH, linesAmount, lines, 0);
+    qsort(text.lines, text.linesAmount, sizeof(String), &ComparatorOriginal);
+    WriteToFile(OUTPUT_PATH, text.linesAmount, text.lines, 0);
 
 
 
-    free(buffer);
-    free(lines);
+    free(text.buffer);
+    free(text.lines);
 
     return 0;
 }
@@ -166,7 +168,7 @@ size_t BufferSplit(char* buffer) { // TODO UNITE indexing and \r catching
 }
 
 void LinesIndexing(char* buffer, const size_t bufferSize, String* lines,
-                   int* maxLineLen                                      ) {
+                   int* maxLineLen                                   ) {
     assert(buffer);
     assert(lines);
 
