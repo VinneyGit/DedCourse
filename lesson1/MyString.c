@@ -9,11 +9,12 @@
 // TODO функция удаления элемента массива
 // TODO добавить функцию удаления всех заданных символов из строки
 
-//================================================================================================================
+//==============================================================================
 
 int Puts(const char* str);
+ssize_t Getline(char** lineptr, size_t* n); // After using always use free()
 
-//----------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 char* Strcpy(char* destination, const char* source);
 char* Strcat(char* destination, const char* source);
@@ -23,7 +24,7 @@ size_t Strlen(const char* str);
 int Strcmp(const char* leftstr, const char* rightstr); // After using always use free()
 // TODO Strchr
 
-//----------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 char* Strncpy(char* destination, const char* source, size_t count);
 char* Strncat(char* destination, const char* source, size_t count);
@@ -33,28 +34,34 @@ size_t Strnlen(const char* str, size_t count);
 int Strncmp(const char* leftstr, const char* rightstr, size_t count); // After using always use free()
 // TODO Strnchr
 
-//----------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 int Atoi(const char* str);
 double Atof(const char* str);
 
-//================================================================================================================
-
-void print_hidden_string(const char *str); // TODO нагажено, убрать
+//==============================================================================
 
 /*
 int main() {
-    printf("%d %d\n", Strcmp("wf", "af"), strcmp("wf", "af"));
-    printf("%d %d\n", Strcmp("wf", "wf"), strcmp("wf", "wf"));
-    printf("%d %d\n", Strcmp("af", "wf"), strcmp("af", "wf"));
-    printf("%d %d\n", Strcmp("wf", "wff"), strcmp("af", "wf"));
+    char* line = NULL;
+    size_t len = 0;
 
+    while(Getline(&line, &len) != -1) {
+        printf("<%s>\n", line);
+    }
+
+    // printf("%d %d\n", Strcmp("wf", "af"), strcmp("wf", "af"));
+    // printf("%d %d\n", Strcmp("wf", "wf"), strcmp("wf", "wf"));
+    // printf("%d %d\n", Strcmp("af", "wf"), strcmp("af", "wf"));
+    // printf("%d %d\n", Strcmp("wf", "wff"), strcmp("af", "wf"));
+
+    free(line);
 
     return 0;
 }
-*/
+// */
 
-//================================================================================================================
+//==============================================================================
 
 int Puts(const char* str) {
     int ch = 0;
@@ -70,7 +77,55 @@ int Puts(const char* str) {
     return ch;
 }
 
-//================================================================================================================
+ssize_t Getline(char** lineptr, size_t* n) {
+    if (lineptr == NULL || n == NULL) {
+        return -1;
+    }
+
+    if (*lineptr == NULL) {
+        *n = 1;
+        if ((*lineptr = (char*)malloc(*n * sizeof(char))) == NULL) {
+            return -1;
+        }
+    }
+
+    char* currentchar = *lineptr;
+    char* newptr = 0;
+    size_t newlen = 0;
+
+    int c = 0;
+    char* firstchar = currentchar;
+
+    while ((c = getchar()) != EOF && c != '\n') {
+        if ((*lineptr + *n) - currentchar < 2) {
+            newlen = *n * 2;
+
+            if((newptr = (char*)realloc(*lineptr, newlen * sizeof(char))) == NULL) {
+                return -1;
+            }
+
+            currentchar = newptr + (currentchar - *lineptr);
+            *lineptr = newptr;
+            *n = newlen;
+        }
+
+        *currentchar++ = (char)c;
+
+        if (c == '\n') {
+            break;
+        }
+    }
+
+    if (c == EOF && currentchar == firstchar) {
+        return -1;
+    }
+
+    *(currentchar - 1) = '\0';
+
+    return (size_t)(currentchar - *lineptr);
+}
+
+//==============================================================================
 
 char* Strcpy(char* destination, const char* source) {
     for (int i = 0; (destination[i] = source[i]) != '\0'; i++) {;}
@@ -99,7 +154,7 @@ char* Strdup(const char* str) {
     return duplicate;
 }
 
-//----------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 size_t Strlen(const char* str) {
     size_t i = 0;
@@ -117,7 +172,7 @@ int Strcmp(const char* l, const char* r) {
     return (l[i] > r[i]) - (l[i] < r[i]); // add len catcher and make return to (a < b) - (a > b)
 }
 
-//================================================================================================================
+//==============================================================================
 
 char* Strncpy(char* destination, const char* source, size_t count) {
     for (size_t i = 0; i < count && (destination[i] = source[i]) != '\0'; i++) {;}
@@ -146,7 +201,7 @@ char* Strndup(const char* str, size_t count) {
     return duplicate;
 }
 
-//----------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 size_t Strnlen(const char* str, size_t count) {
     size_t i = 0;
@@ -168,7 +223,7 @@ int Strncmp(const char* l, const char* r, size_t count) {
     return (l[i] > r[i]) - (l[i] < r[i]); // add len catcher and make return to (a < b) - (a > b)
 }
 
-//================================================================================================================
+//==============================================================================
 
 int Atoi(const char* str) {
     int number = 0;
@@ -283,40 +338,3 @@ double Atof(const char* str) {
 
     return sign * number;
 }
-
-/*
-// TODO getline 4 через scanf %m???
-*/
-
-
-void print_hidden_string(const char *str) { // TODO нагажено, убрать
-    if (!str) return;
-
-    while (*str) {
-        switch (*str) {
-            case '\n': printf("\033[1;31m\\n\033[0m");  break; // Перевод строки
-            case '\t': printf("\033[1;31m\\t\033[0m");  break; // Табуляция
-            case '\r': printf("\033[1;31m\\r\033[0m");  break; // Возврат каретки
-            case '\b': printf("\033[1;31m\\b\033[0m");  break; // Забой (Backspace)
-            case '\a': printf("\033[1;31m\\a\033[0m");  break; // Гудок (Alert)
-            case '\v': printf("\033[1;31m\\v\033[0m");  break; // Вертикальная табуляция
-            case '\f': printf("\033[1;31m\\f\033[0m");  break; // Перевод страницы
-            case '\\': printf("\033[1;31m\\\\\033[0m"); break; // Сам бэкслеш
-            case ' ':
-                // Опционально: можно подсветить пробел, чтобы видеть их количество
-                printf(" ");
-                break;
-            default:
-                // Если символ непечатный (ASCII < 32), выводим его код в восьмеричном формате
-                if (*str < 32) {
-                    printf("\033[1;31m\\%03o\033[0m", (unsigned char)*str);
-                } else {
-                    putchar(*str); // Обычный печатный символ
-                }
-                break;
-        }
-        str++;
-    }
-    printf("\n"); // Перевод строки в конце вывода всей функции
-}
-
