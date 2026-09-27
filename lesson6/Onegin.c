@@ -47,7 +47,7 @@ void    LinesIndexing        (Text* text);
 
 FILE*   CreateOutputFile     (const char* fileName);
 void    WriteToFile          (FILE* file, const size_t linesAmount,
-                              const String* lines, int maxLineLen            );
+                              const String* lines, int maxLineLen  );
 
 //------------------------------------------------------------------------------
 
@@ -92,12 +92,6 @@ int main(int argc, char** argv) {
 
     printf("linesAmount: %5zu\n==========================\n", text.linesAmount);
 
-    /* for (size_t i = 0; i < text.linesAmount; i++) {
-        if (lines[i].len == 0) {
-            continue;
-        }
-        printf("%d\n", text.lines[i].len);
-    } */
 
     FILE* OutputFile = CreateOutputFile(OUTPUT_PATH);
 
@@ -107,10 +101,12 @@ int main(int argc, char** argv) {
     qsort(text.lines, text.linesAmount, sizeof(String), &ComparatorEnd);
     WriteToFile(OutputFile, text.linesAmount, text.lines, text.maxLineLen);
 
-    VoidBubbleSort(text.lines, text.linesAmount, sizeof(String), &ComparatorOriginal);
+    VoidBubbleSort(text.lines, text.linesAmount,
+                                        sizeof(String), &ComparatorOriginal);
     WriteToFile(OutputFile, text.linesAmount, text.lines, 0);
 
     fclose(OutputFile);
+
 
     free(text.buffer);
     free(text.lines);
@@ -126,7 +122,7 @@ size_t ReadFileSize(const char* fileName) {
     struct stat fileStats;
     int returnValue = stat(fileName, &fileStats);
 
-    assert(returnValue != -1);
+    assert(returnValue != -1); // TODO catching
 
     return fileStats.st_size;
 }
@@ -247,7 +243,7 @@ void WriteToFile(FILE* file, const size_t linesAmount,
 
 //==============================================================================
 
-int ComparatorBegin(const void* ptr_a, const void* ptr_b) {
+int ComparatorBegin(const void* ptr_a, const void* ptr_b) { // TODO упростить
     assert(ptr_a);
     assert(ptr_b);
 
@@ -352,6 +348,4 @@ int ComparatorOriginal(const void* ptr_a, const void* ptr_b) {
     const char* str_b = b.str;
 
     return (str_a > str_b) - (str_a < str_b);
-
-    return 0;
 }
