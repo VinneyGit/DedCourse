@@ -302,7 +302,7 @@ int ComparatorBegin(const void* ptr_a, const void* ptr_b) {
     size_t i_a = 0;
     size_t i_b = 0;
 
-    while (i_a < a.len && i_b < b.len) {
+    while (a.str[i_a] != '\0' && b.str[i_b] != '\0') {
         if (!isalpha(a.str[i_a])) {
             i_a++;
             continue;
