@@ -23,10 +23,15 @@ struct String {
 struct Text {
     char*   buffer;
     size_t  bufferSize;
-    size_t  symbolsRead;
+    size_t  charRead;
     String* lines;
     size_t  linesAmount;
     int     maxLineLen;
+};
+
+enum error {
+    OK = 0,
+    ERROR = -1,
 };
 
 // TODO ??? add windows CRLF
@@ -34,20 +39,22 @@ struct Text {
 
 //==============================================================================
 
-size_t  ReadFileSize         (const char* fileName);
-size_t  ReadFromFileToBuffer (const char* fileName, char* buffer,
-                              const size_t bufferSize            );
+error   GetFileNames         (int argc, char ** argv,
+                              char** inputPath, char** outputPath);
 
 //------------------------------------------------------------------------------
 
-size_t  BufferSplit          (char* buffer);
-void    LinesIndexing        (Text* text);
+error   ReadFileSize         (const char* fileName, Text* text);
+error   ReadFromFileToBuffer (const char* fileName, Text* text);
 
 //------------------------------------------------------------------------------
 
-FILE*   CreateOutputFile     (const char* fileName);
-void    WriteToFile          (FILE* file, const size_t linesAmount,
-                              const String* lines, int maxLineLen  );
+error   LinesIndexing        (Text* text);
+
+//------------------------------------------------------------------------------
+
+error   CreateOutputFile     (const char* fileName, FILE** fileToWrite);
+error   WriteToFile          (FILE* file, Text* text, int maxLineLen);
 
 //------------------------------------------------------------------------------
 
@@ -59,51 +66,56 @@ int     ComparatorOriginal   (const void* ptr_a, const void* ptr_b);
 
 int main(int argc, char** argv) {
 
-    const char* INPUT_PATH = *(argv + 1);
-    const char* OUTPUT_PATH = *(argv + 2);
+    char* INPUT_PATH = NULL;
+    char* OUTPUT_PATH = NULL;
 
-    if (argc == 1) {
-        printf("Please, put path for INPUT and OUTPUT files\n");
+    if (GetFileNames(argc, argv, &INPUT_PATH, &OUTPUT_PATH) == ERROR) {
         return -1;
     }
-
-    else if (argc == 2) {
-        printf("Please, put path for OUTPUT file\n");
-        return -1;
-    }
-
-    assert(INPUT_PATH);
-    assert(OUTPUT_PATH);
-
     printf("Input: %s\n", INPUT_PATH);
     printf("Output: %s\n", OUTPUT_PATH);
 
 
     Text text = {};
 
-    text.bufferSize = ReadFileSize(INPUT_PATH);
+
+    if (ReadFileSize(INPUT_PATH, &text) == ERROR) {
+        return -1;
+    }
     printf("Size of file in bytes is: %zu\n", text.bufferSize);
 
-    text.buffer = (char*)calloc(text.bufferSize, sizeof(char));
-    text.symbolsRead = ReadFromFileToBuffer(INPUT_PATH,
-                                                text.buffer, text.bufferSize);
+    if (ReadFromFileToBuffer(INPUT_PATH, &text) == ERROR) {
+        return -1;
+    }
 
-    LinesIndexing(&text);
+    if (LinesIndexing(&text) == ERROR) {
+        return -1;
+    }
 
     printf("linesAmount: %5zu\n==========================\n", text.linesAmount);
 
 
-    FILE* OutputFile = CreateOutputFile(OUTPUT_PATH);
+    FILE* OutputFile = NULL;
+
+    if (CreateOutputFile(OUTPUT_PATH, &OutputFile) == ERROR) {
+        return -1;
+    }
 
     qsort(text.lines, text.linesAmount, sizeof(String), &ComparatorBegin);
-    WriteToFile(OutputFile, text.linesAmount, text.lines, 0);
+    if (WriteToFile(OutputFile, &text, 0) == ERROR) {
+        return -1;
+    }
 
     qsort(text.lines, text.linesAmount, sizeof(String), &ComparatorEnd);
-    WriteToFile(OutputFile, text.linesAmount, text.lines, text.maxLineLen);
+    if (WriteToFile(OutputFile, &text, text.maxLineLen) == ERROR) {
+        return -1;
+    }
 
     VoidBubbleSort(text.lines, text.linesAmount,
                                         sizeof(String), &ComparatorOriginal);
-    WriteToFile(OutputFile, text.linesAmount, text.lines, 0);
+    if (WriteToFile(OutputFile, &text, 0) == ERROR) {
+        return -1;
+    }
 
     fclose(OutputFile);
 
@@ -116,40 +128,69 @@ int main(int argc, char** argv) {
 
 //==============================================================================
 
-size_t ReadFileSize(const char* fileName) {
+error GetFileNames (int argc, char ** argv, char** inputPath, char** outputPath) {
+    if (argc == 1) {
+        printf("Please, put path for INPUT and OUTPUT files\n");
+        return ERROR;
+    }
+
+    else if (argc == 2) {
+        printf("Please, put path for OUTPUT file\n");
+        return ERROR;
+    }
+
+    *inputPath = *(argv + 1);
+    *outputPath = *(argv + 2);
+
+    return OK;
+}
+
+//------------------------------------------------------------------------------
+
+error ReadFileSize(const char* fileName, Text* text) {
     assert(fileName);
 
     struct stat fileStats;
     int returnValue = stat(fileName, &fileStats);
 
-    assert(returnValue != -1); // TODO catching
+    if (returnValue == -1) {
+        printf("ERROR WHILE READING FILE'S DATA\n");
+        return ERROR;
+    }
 
-    return fileStats.st_size;
+    text->bufferSize = fileStats.st_size;
+
+    return OK;
 }
 
-size_t ReadFromFileToBuffer(const char* fileName, char* buffer,
-                            const size_t bufferSize            ) {
+error ReadFromFileToBuffer(const char* fileName, Text* text) {
     assert(fileName);
-    assert(buffer);
+    assert(text);
+
+    text->buffer = (char*)calloc(text->bufferSize, sizeof(char));
+
+    if (text->buffer == NULL) {
+        printf("ERROR WITH MEMORY ALLOCATION FOR BUFFER\n");
+        return ERROR;
+    }
 
     FILE* file = fopen(fileName, "r");
 
     if (file == NULL) {
         printf("ERROR WHILE OPENING INPUT FILE\n");
-        return 0;
+        return ERROR;
     }
 
-
-    size_t charRead = fread(buffer, sizeof(char), bufferSize, file);
+    text->charRead = fread(text->buffer, sizeof(char), text->bufferSize, file);
 
     fclose(file);
 
-    return charRead;
+    return OK;
 }
 
 //==============================================================================
 
-void LinesIndexing(Text* text) {
+error LinesIndexing(Text* text) {
     assert(text);
     assert(text->buffer);
     assert(text->bufferSize);
@@ -160,10 +201,8 @@ void LinesIndexing(Text* text) {
     if ((text->lines = (String*)calloc(sizeOfLinesArray,
                                                     sizeof(String))) == NULL) {
         printf("ERROR WITH CALLOC\n");
-        return;
+        return ERROR;
     }
-
-    printf("FIRST CALLOC WAS\n");
 
     size_t position = 0;
     size_t stringNum = 0;
@@ -177,7 +216,7 @@ void LinesIndexing(Text* text) {
             if((newLines = (String*)realloc(text->lines,
                                newSizeOfLinesArray * sizeof(String))) == NULL) {
                 printf("ERROR WITH REALLOC\n");
-                return;
+                return ERROR;
             }
         }
 
@@ -205,89 +244,81 @@ void LinesIndexing(Text* text) {
     }
 
     text->linesAmount = linesAmount;
+
+    return OK;
 }
 
 //==============================================================================
 
-FILE* CreateOutputFile(const char* fileName) {
+error CreateOutputFile(const char* fileName, FILE** fileToWrite) {
     assert(fileName);
 
     FILE* file = fopen(fileName, "w");
 
-    if(file == NULL) {
+    if (file == NULL) {
         printf("ERROR WHILE CREATING OUTPUT FILE\n");
+        return ERROR;
     }
 
-    return file;
+    *fileToWrite = file;
+
+    return OK;
 }
-
-void WriteToFile(FILE* file, const size_t linesAmount,
-                 const String* lines, int maxLineLen  ) {
-                 // TODO add null string print and name of sorting
+// TODO add null string print and name of sorting
+error WriteToFile(FILE* file, Text* text, int maxLineLen) {
     assert(file);
-    assert(lines);
+    assert(text->lines);
 
-    if(file == NULL) {
+    if (file == NULL) {
         printf("ERROR WHILE OPENING OUTPUT FILE\n");
+        return ERROR;
     }
 
-    for (size_t i = 0; i < linesAmount; i++) {
-        if (lines[i].len == 0) {
+    for (size_t i = 0; i < text->linesAmount; i++) {
+        if (text->lines[i].len == 0) {
             continue;
         }
-        fprintf(file, "%*s\n", maxLineLen, lines[i].str);
+        fprintf(file, "%*s\n", maxLineLen, text->lines[i].str);
     }
 
     fprintf(file, "========================================================\n");
+
+    return OK;
 }
 
 //==============================================================================
 
-int ComparatorBegin(const void* ptr_a, const void* ptr_b) { // TODO упростить
+int ComparatorBegin(const void* ptr_a, const void* ptr_b) {
     assert(ptr_a);
     assert(ptr_b);
 
     const String a = *(const String*)ptr_a;
     const String b = *(const String*)ptr_b;
 
-    const char* str_a = a.str;
-    const char* str_b = b.str;
-
-    const size_t len_a = a.len;
-    const size_t len_b = b.len;
-
-    if (len_a == 0) {
-        return 1;
-    }
-
-    else if (len_b == 0) {
-        return -1;
-    }
-
-    else if (len_a == 0 && len_b == 0) {
-        return 0;
+    if (a.len == 0 || b.len == 0) {
+        return (a.len > b.len) - (a.len < b.len);
     }
 
     size_t i_a = 0;
     size_t i_b = 0;
 
-    while (i_a < len_a && i_b < len_b) {
-        if (!isalpha(str_a[i_a])) {
+    while (i_a < a.len && i_b < b.len) {
+        if (!isalpha(a.str[i_a])) {
             i_a++;
             continue;
         }
-        if (!isalpha(str_b[i_b])) {
+        if (!isalpha(b.str[i_b])) {
             i_b++;
             continue;
         }
-        if (ToLower(str_a[i_a]) != ToLower(str_b[i_b])) {
-            break;
+        if (ToLower(a.str[i_a]) != ToLower(b.str[i_b])) {
+            return ToLower(a.str[i_a]) - ToLower(b.str[i_b]);
         }
         i_a++;
         i_b++;
     }
 
-    return ToLower(str_a[i_a]) - ToLower(str_b[i_b]);
+    return (a.len > b.len) - (a.len < b.len);
 }
 
 int ComparatorEnd(const void* ptr_a, const void* ptr_b) {
@@ -297,44 +328,30 @@ int ComparatorEnd(const void* ptr_a, const void* ptr_b) {
     const String a = *(const String*)ptr_a;
     const String b = *(const String*)ptr_b;
 
-    const char* str_a = a.str;
-    const char* str_b = b.str;
-
-    const size_t len_a = a.len;
-    const size_t len_b = b.len;
-
-    if (len_a == 0) {
-        return 1;
+    if (a.len == 0 || b.len == 0) {
+        return (a.len > b.len) - (a.len < b.len);
     }
 
-    else if (len_b == 0) {
-        return -1;
-    }
-
-    else if (len_a == 0 && len_b == 0) {
-        return 0;
-    }
-
-    size_t i_a = len_a - 1;
-    size_t i_b = len_b - 1;
+    size_t i_a = a.len - 1;
+    size_t i_b = b.len - 1;
 
     while (i_a > 0 && i_b > 0) {
-        if (!isalpha(str_a[i_a])) {
+        if (!isalpha(a.str[i_a])) {
             i_a--;
             continue;
         }
-        if (!isalpha(str_b[i_b])) {
+        if (!isalpha(b.str[i_b])) {
             i_b--;
             continue;
         }
-        if (ToLower(str_a[i_a]) != ToLower(str_b[i_b])) {
-            break;
+        if (ToLower(a.str[i_a]) != ToLower(b.str[i_b])) {
+            return ToLower(a.str[i_a]) - ToLower(b.str[i_b]);
         }
         i_a--;
         i_b--;
     }
 
-    return ToLower(str_a[i_a]) - ToLower(str_b[i_b]);
+    return (a.len > b.len) - (a.len < b.len);
 }
 
 int ComparatorOriginal(const void* ptr_a, const void* ptr_b) {
