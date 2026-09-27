@@ -23,31 +23,39 @@ struct String {
 struct Text {
     char*   buffer;
     size_t  bufferSize;
+    size_t  charRead;
+    String* lines;
     size_t  linesAmount;
-    size_t  f;
+    int     maxLineLen;
+};
+
+enum error {
+    OK = 0,
+    ERROR = -1,
 };
 
 // TODO ??? add windows CRLF
 // TODO ??? Filedescriptor
-// TODO make struct for buffer with number of lines and other
 
 //==============================================================================
 
-size_t  ReadFileSize         (const char* fileName);
-size_t  ReadFromFileToBuffer (const char* fileName, char* buffer,
-                              const size_t bufferSize            );
+error   GetFileNames         (int argc, char ** argv,
+                              char** inputPath, char** outputPath);
 
 //------------------------------------------------------------------------------
 
-size_t  BufferSplit          (char* buffer);
-void    LinesIndexing        (char* buffer, const size_t bufferSize,
-                              String* lines, int* maxLineLen        );
+error   ReadFileSize         (const char* fileName, Text* text);
+error   ReadFromFileToBuffer (const char* fileName, Text* text);
 
 //------------------------------------------------------------------------------
 
-void    CreateOutputFile     (const char* fileName);
-void    WriteToFile          (const char* fileName, const size_t linesAmount,
-                              const String* lines, int maxLineLen            );
+void    BufferSplit          (Text* text);
+error   LinesIndexing        (Text* text);
+
+//------------------------------------------------------------------------------
+
+error   CreateOutputFile     (const char* fileName, FILE** fileToWrite);
+error   WriteToFile          (FILE* file, Text* text, int maxLineLen);
 
 //------------------------------------------------------------------------------
 
@@ -59,173 +67,214 @@ int     ComparatorOriginal   (const void* ptr_a, const void* ptr_b);
 
 int main(int argc, char** argv) {
 
-    const char* INPUT_PATH = *(argv + 1);
-    const char* OUTPUT_PATH = *(argv + 2);
+    char* INPUT_PATH = NULL;
+    char* OUTPUT_PATH = NULL;
 
-    if (argc == 1) {
-        printf("Please, put path for INPUT and OUTPUT files\n");
+    if (GetFileNames(argc, argv, &INPUT_PATH, &OUTPUT_PATH) == ERROR) {
         return -1;
     }
-
-    else if (argc == 2) {
-        printf("Please, put path for OUTPUT file\n");
-        return -1;
-    }
-
-    assert(INPUT_PATH);
-    assert(OUTPUT_PATH);
-
     printf("Input: %s\n", INPUT_PATH);
     printf("Output: %s\n", OUTPUT_PATH);
 
 
-
-    size_t bufferSize = ReadFileSize(INPUT_PATH);
-    printf("Size of file in bytes is: %zu\n", bufferSize);
-
-    char* buffer = (char*)calloc(bufferSize, sizeof(char));
-    bufferSize = ReadFromFileToBuffer(INPUT_PATH, buffer, bufferSize);
-
-    size_t linesAmount = BufferSplit(buffer);
-    struct String* lines = (String*)calloc(linesAmount, sizeof(String));
-
-    printf("linesAmount: %5zu\n============================\n", linesAmount);
+    Text text = {};
 
 
+    if (ReadFileSize(INPUT_PATH, &text) == ERROR) {
+        return -1;
+    }
+    printf("Size of file in bytes is: %zu\n", text.bufferSize);
 
-    int maxLineLen = 0;
-    LinesIndexing(buffer, bufferSize, lines, &maxLineLen);
+    if (ReadFromFileToBuffer(INPUT_PATH, &text) == ERROR) {
+        return -1;
+    }
 
-    CreateOutputFile(OUTPUT_PATH);
+    BufferSplit(&text);
 
-    VoidBubbleSort(lines, linesAmount, sizeof(String), &ComparatorBegin);
-    WriteToFile(OUTPUT_PATH, linesAmount, lines, 0);
+    if (LinesIndexing(&text) == ERROR) {
+        return -1;
+    }
 
-    VoidBubbleSort(lines, linesAmount, sizeof(String), &ComparatorEnd);
-    WriteToFile(OUTPUT_PATH, linesAmount, lines, maxLineLen);
-
-    VoidBubbleSort(lines, linesAmount, sizeof(String), &ComparatorOriginal);
-    WriteToFile(OUTPUT_PATH, linesAmount, lines, 0);
+    printf("linesAmount: %5zu\n==========================\n", text.linesAmount);
 
 
+    FILE* OutputFile = NULL;
 
-    free(buffer);
-    free(lines);
+    if (CreateOutputFile(OUTPUT_PATH, &OutputFile) == ERROR) {
+        return -1;
+    }
+
+    qsort(text.lines, text.linesAmount, sizeof(String), &ComparatorBegin);
+    if (WriteToFile(OutputFile, &text, 0) == ERROR) {
+        return -1;
+    }
+
+    qsort(text.lines, text.linesAmount, sizeof(String), &ComparatorEnd);
+    if (WriteToFile(OutputFile, &text, text.maxLineLen) == ERROR) {
+        return -1;
+    }
+
+    VoidBubbleSort(text.lines, text.linesAmount,
+                                        sizeof(String), &ComparatorOriginal);
+    if (WriteToFile(OutputFile, &text, 0) == ERROR) {
+        return -1;
+    }
+
+    fclose(OutputFile);
+
+
+    free(text.buffer);
+    free(text.lines);
 
     return 0;
 }
 
 //==============================================================================
 
-size_t ReadFileSize(const char* fileName) {
+error GetFileNames (int argc, char ** argv, char** inputPath, char** outputPath) {
+    if (argc == 1) {
+        printf("Please, put path for INPUT and OUTPUT files\n");
+        return ERROR;
+    }
+
+    else if (argc == 2) {
+        printf("Please, put path for OUTPUT file\n");
+        return ERROR;
+    }
+
+    *inputPath = *(argv + 1);
+    *outputPath = *(argv + 2);
+
+    return OK;
+}
+
+//------------------------------------------------------------------------------
+
+error ReadFileSize(const char* fileName, Text* text) {
     assert(fileName);
 
     struct stat fileStats;
     int returnValue = stat(fileName, &fileStats);
 
-    assert(returnValue != -1);
+    if (returnValue == -1) {
+        printf("ERROR WHILE READING FILE'S DATA\n");
+        return ERROR;
+    }
 
-    return fileStats.st_size;
+    text->bufferSize = fileStats.st_size;
+
+    return OK;
 }
 
-size_t ReadFromFileToBuffer(const char* fileName, char* buffer,
-                            const size_t bufferSize            ) {
+error ReadFromFileToBuffer(const char* fileName, Text* text) {
     assert(fileName);
-    assert(buffer);
+    assert(text);
+
+    text->buffer = (char*)calloc(text->bufferSize, sizeof(char));
+
+    if (text->buffer == NULL) {
+        printf("ERROR WITH MEMORY ALLOCATION FOR BUFFER\n");
+        return ERROR;
+    }
 
     FILE* file = fopen(fileName, "r");
 
     if (file == NULL) {
         printf("ERROR WHILE OPENING INPUT FILE\n");
-        return 0;
+        return ERROR;
     }
 
-
-    size_t charRead = fread(buffer, sizeof(char), bufferSize, file);
+    text->charRead = fread(text->buffer, sizeof(char), text->bufferSize, file);
 
     fclose(file);
 
-    return charRead;
+    return OK;
 }
 
 //==============================================================================
 
-size_t BufferSplit(char* buffer) { // TODO UNITE indexing and \r catching
-    assert(buffer);
+void BufferSplit(Text* text) {
+    assert(text);
 
-    size_t linesAmount = 0;
+    char* substr = text->buffer;
 
-    while((buffer = strchr(buffer, '\n')) != NULL) {
-        *buffer = '\0';
-        buffer++;
+    while ((substr = strchr(substr, '\n')) != NULL) {
+        *substr = '\0';
+        substr++;
 
-        linesAmount++;
+        text->linesAmount++;
     }
-
-    return linesAmount;
 }
 
-void LinesIndexing(char* buffer, const size_t bufferSize, String* lines,
-                   int* maxLineLen                                      ) {
-    assert(buffer);
-    assert(lines);
+error LinesIndexing(Text* text) {
+    assert(text);
+
+    text->lines = (String*)calloc(text->linesAmount, sizeof(String));
+
+    if (text->lines == NULL) {
+        printf("ERROR WITH MEMORY ALLOCATION FOR LINES\n");
+        return ERROR;
+    }
 
     size_t position = 0;
     size_t stringNum = 0;
 
-    while (position < bufferSize) {
+    while (position < text->bufferSize) {
         int len = 0;
-        lines[stringNum].str = buffer + position;
+        text->lines[stringNum].str = text->buffer + position;
 
-        while (buffer[position] != '\0') {
+        while (text->buffer[position] != '\0') {
             position++;
             len++;
         }
         position++;
 
-        lines[stringNum].len = len;
+        text->lines[stringNum].len = len;
 
-        *maxLineLen = max(len, *maxLineLen);
+        text->maxLineLen = max(len, text->maxLineLen);
 
         stringNum++;
     }
+
+    return OK;
 }
 
 //==============================================================================
 
-void CreateOutputFile(const char* fileName) {
+error CreateOutputFile(const char* fileName, FILE** fileToWrite) {
     assert(fileName);
 
     FILE* file = fopen(fileName, "w");
 
-    if(file == NULL) {
+    if (file == NULL) {
         printf("ERROR WHILE CREATING OUTPUT FILE\n");
+        return ERROR;
     }
 
-    fclose(file);
+    *fileToWrite = file;
+
+    return OK;
 }
+// TODO add null string print and name of sorting
+error WriteToFile(FILE* file, Text* text, int maxLineLen) {
+    assert(file);
+    assert(text->lines);
 
-void WriteToFile(const char* fileName, const size_t linesAmount,
-                 const String* lines, int maxLineLen            ) { // TODO add null string print and name of sorting
-    assert(fileName);
-    assert(lines);
-
-    FILE* file = fopen(fileName, "a");
-
-    if(file == NULL) {
+    if (file == NULL) {
         printf("ERROR WHILE OPENING OUTPUT FILE\n");
+        return ERROR;
     }
 
-    for (size_t i = 0; i < linesAmount; i++) {
-        if (lines[i].len == 0) {
+    for (size_t i = 0; i < text->linesAmount; i++) {
+        if (text->lines[i].len == 0) {
             continue;
         }
-        fprintf(file, "%*s\n", maxLineLen, lines[i].str);
+        fprintf(file, "%*s\n", maxLineLen, text->lines[i].str);
     }
 
     fprintf(file, "========================================================\n");
 
-    fclose(file);
+    return OK;
 }
 
 //==============================================================================
