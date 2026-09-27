@@ -286,44 +286,30 @@ int ComparatorBegin(const void* ptr_a, const void* ptr_b) {
     const String a = *(const String*)ptr_a;
     const String b = *(const String*)ptr_b;
 
-    const char* str_a = a.str;
-    const char* str_b = b.str;
-
-    const size_t len_a = a.len;
-    const size_t len_b = b.len;
-
-    if (len_a == 0) {
-        return 1;
-    }
-
-    else if (len_b == 0) {
-        return -1;
-    }
-
-    else if (len_a == 0 && len_b == 0) {
-        return 0;
+    if (a.len == 0 || b.len == 0) {
+        return (a.len > b.len) - (a.len < b.len);
     }
 
     size_t i_a = 0;
     size_t i_b = 0;
 
-    while (i_a < len_a && i_b < len_b) {
-        if (!isalpha(str_a[i_a])) {
+    while (i_a < a.len && i_b < b.len) {
+        if (!isalpha(a.str[i_a])) {
             i_a++;
             continue;
         }
-        if (!isalpha(str_b[i_b])) {
+        if (!isalpha(b.str[i_b])) {
             i_b++;
             continue;
         }
-        if (ToLower(str_a[i_a]) != ToLower(str_b[i_b])) {
-            break;
+        if (ToLower(a.str[i_a]) != ToLower(b.str[i_b])) {
+            return ToLower(a.str[i_a]) - ToLower(b.str[i_b]);
         }
         i_a++;
         i_b++;
     }
 
-    return ToLower(str_a[i_a]) - ToLower(str_b[i_b]);
+    return (a.len > b.len) - (a.len < b.len);
 }
 
 int ComparatorEnd(const void* ptr_a, const void* ptr_b) {
@@ -333,44 +319,30 @@ int ComparatorEnd(const void* ptr_a, const void* ptr_b) {
     const String a = *(const String*)ptr_a;
     const String b = *(const String*)ptr_b;
 
-    const char* str_a = a.str;
-    const char* str_b = b.str;
-
-    const size_t len_a = a.len;
-    const size_t len_b = b.len;
-
-    if (len_a == 0) {
-        return 1;
+    if (a.len == 0 || b.len == 0) {
+        return (a.len > b.len) - (a.len < b.len);
     }
 
-    else if (len_b == 0) {
-        return -1;
-    }
-
-    else if (len_a == 0 && len_b == 0) {
-        return 0;
-    }
-
-    size_t i_a = len_a - 1;
-    size_t i_b = len_b - 1;
+    size_t i_a = a.len - 1;
+    size_t i_b = b.len - 1;
 
     while (i_a > 0 && i_b > 0) {
-        if (!isalpha(str_a[i_a])) {
+        if (!isalpha(a.str[i_a])) {
             i_a--;
             continue;
         }
-        if (!isalpha(str_b[i_b])) {
+        if (!isalpha(b.str[i_b])) {
             i_b--;
             continue;
         }
-        if (ToLower(str_a[i_a]) != ToLower(str_b[i_b])) {
-            break;
+        if (ToLower(a.str[i_a]) != ToLower(b.str[i_b])) {
+            return ToLower(a.str[i_a]) - ToLower(b.str[i_b]);
         }
         i_a--;
         i_b--;
     }
 
-    return ToLower(str_a[i_a]) - ToLower(str_b[i_b]);
+    return (a.len > b.len) - (a.len < b.len);
 }
 
 int ComparatorOriginal(const void* ptr_a, const void* ptr_b) {
