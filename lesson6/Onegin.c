@@ -15,24 +15,24 @@
 
 #define max(a, b) ((a) > (b) ? (a) : (b))
 
-struct String {
+typedef struct {
     char*   str;
     size_t  len;
-};
+} String;
 
-struct Text {
+typedef struct {
     char*   buffer;
     size_t  bufferSize;
     size_t  charRead;
     String* lines;
     size_t  linesAmount;
     int     maxLineLen;
-};
+} Text;
 
-enum error {
-    OK = 0,
-    ERROR = -1,
-};
+typedef enum {
+    OK      = 0,
+    ERROR   = -1
+} error;
 
 // TODO ??? add windows CRLF
 // TODO ??? Filedescriptor
