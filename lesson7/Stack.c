@@ -53,8 +53,10 @@ errorStack StackCtor(Stack_t* stack) {
         return ERROR;
     }
 
-    if ((stack->data = (StackElem_t*)calloc(BASE_CAPACITY,
-                                            sizeof(StackElem_t))) == NULL) {
+
+    stack->data = (StackElem_t*)calloc(BASE_CAPACITY, sizeof(StackElem_t));
+
+    if (stack->data == NULL) {
         return ERROR;
     }
 
@@ -69,17 +71,15 @@ errorStack StackDstr(Stack_t* stack) {
         return ERROR;
     }
 
-    free(stack->data);
-    if (stack->data != NULL) {
-        return ERROR;
-    }
 
-    stack->size = 0;
+    free(stack->data);
+
+    stack->size = 0; //TODO poison value
     stack->capacity = 0;
 
     return OK;
 }
-
+// TODO sizeof
 //------------------------------------------------------------------------------
 
 errorStack StackPush(Stack_t* stack, StackElem_t value) {
@@ -87,19 +87,22 @@ errorStack StackPush(Stack_t* stack, StackElem_t value) {
         return ERROR;
     }
 
-    if (capacity - size < 2) {
-        size_t newCapacity = capacity * 2;
 
-        StackElem_t newData = NULL;
-        if ((newData = realloc(stack->data, newCapacity)) == NULL) {
+    if (stack->capacity - stack->size == 0) {
+        size_t newCapacity = stack->capacity * MAX_INCREASE_GAP;
+
+        StackElem_t* newData = (StackElem_t*)realloc(stack->data, newCapacity);
+
+        if (newData == NULL) {
             return ERROR;
         }
 
+        stack->capacity = newCapacity;
         stack->data = newData;
     }
 
-    stack->data[size] = value;
-    size++;
+    stack->data[stack->size] = value;
+    stack->size++;
 
     return OK;
 }
@@ -107,6 +110,28 @@ errorStack StackPush(Stack_t* stack, StackElem_t value) {
 errorStack StackPop(Stack_t* stack, StackElem_t* value) {
     if (stack == NULL) {
         return ERROR;
+    }
+
+
+    if (stack->size == 0) {
+        return ERROR;
+    }
+
+    *value = stack->data[stack->size - 1];
+    stack->size--;
+
+    if ((double)(stack->capacity / stack->size) > MAX_DECREASE_GAP
+                                && stack->capacity / 2 > 1) {
+        size_t newCapacity = stack->capacity / 2;
+
+        StackElem_t* newData = (StackElem_t*)realloc(stack->data, newCapacity);
+
+        if (newData == NULL) {
+            return ERROR;
+        }
+
+        stack->capacity = newCapacity;
+        stack->data = newData;
     }
 
     return OK;
