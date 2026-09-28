@@ -245,8 +245,6 @@ error LinesIndexing(Text* text) {
 
     text->linesAmount = linesAmount;
 
-    free(newLines);
-
     return OK;
 }
 
