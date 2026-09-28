@@ -10,8 +10,8 @@
 typedef double StackElem_t;
 
 const size_t    BASE_CAPACITY       = 5;
-const int       MAX_INCREASE_GAP    = 2.0;
-const double    MAX_DECREASE_GAP    = 4.0;
+const int       MAX_INCREASE_GAP    = 2;
+const int       MAX_DECREASE_GAP    = 4;
 
 typedef struct {
     StackElem_t*    data;
@@ -19,9 +19,9 @@ typedef struct {
     size_t          capacity;
 
     ON_DBG_STACK (
-    const char*     name;
-    const char*     file;
-    int             line;
+    const char*     FILE;
+    size_t          LINE;
+    const char*     FUNC;
     )
 
 } Stack_t;
