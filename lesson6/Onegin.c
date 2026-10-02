@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include <fcntl.h>
-#include <sys\stat.h>
+#include <sys/stat.h>
 
 #include "../lesson1/MyString.c"
 #include "../lesson4/FunctionPointer.c"
@@ -97,13 +97,12 @@ int main(int argc, char** argv) {
 
     printf("linesAmount: %5zu\n==========================\n", text.linesAmount);
 
-
     FILE* OutputFile = NULL;
 
     if (CreateOutputFile(OUTPUT_PATH, &OutputFile) == ERROR) {
         return -1;
     }
-
+    
     qsort(text.lines, text.linesAmount, sizeof(String), &ComparatorBegin);
     if (WriteToFile(OutputFile, &text, 0) == ERROR) {
         return -1;
@@ -131,7 +130,8 @@ int main(int argc, char** argv) {
 
 //==============================================================================
 
-error GetFileNames (int argc, char ** argv, char** inputPath, char** outputPath) {
+error GetFileNames(int argc, char ** argv,
+                                          char** inputPath, char** outputPath) {
     if (argc == 1) {
         printf("Please, put path for INPUT and OUTPUT files\n");
         return ERROR;

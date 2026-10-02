@@ -250,8 +250,7 @@ int Atoi(const char* str) {
 
     return sign * number;
 }
-
-
+/*
 double Atof(const char* str) {
     double number = 0.0;
 
@@ -338,3 +337,4 @@ double Atof(const char* str) {
 
     return sign * number;
 }
+*/
