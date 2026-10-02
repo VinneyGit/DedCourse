@@ -4,12 +4,36 @@
 //------------------------------------------------------------------------------
 
 #define STACK_DEBUG
-#define CAPACITY_CHANGE_PRINT
+
+#define DUMP_CTOR_DSTR
+#define DUMP_PUSH_POP
+#define DUMP_CAPACITY_CHANGE
+#define DUMP_VERIFY
+#define DUMP_EVERY_PUSH
+#define DUMP_EVERY_POP
+#define DUMP_BEFORE_DESTROY
+
+#define OFF_CANARY
+
+//------------------------------------------------------------------------------
+
+#ifndef STACK_DEBUG
+
+#undef  DUMP_CTOR_DSTR
+#undef  DUMP_PUSH_POP
+#undef  DUMP_CAPACITY_CHANGE
+#undef  DUMP_VERIFY
+#define DUMP_EVERY_PUSH
+#define DUMP_EVERY_POP
+#define DUMP_BEFORE_DESTROY
+
+#endif
 
 //------------------------------------------------------------------------------
 
 #include "Error.h"
 #include "Stack.h"
+#include "Log.c"
 
 //==============================================================================
 
@@ -22,67 +46,58 @@ typedef enum {
 
 //TODO add canary
 //TODO print
-//TODO size
-//TODO is_empty
+//TODO size no errorStack
+//TODO is_empty no errorStack
 //TODO clear
-// Идея сделать общий тип структур program obj в котором будет храниться DEBUG
-// INFO, а при печати в дамп передавать функцию печати объекта, а в самом стеке
-// хранится сам program obj
 
 //==============================================================================
 
-errorStack  StackCtor   (Stack_t* stack
-ON_DBG_STACK(DEBUG_FUNCTION_ARGS, FILE* DUMP_FILE)                            );
+errorStack  StackCtor       (Stack_t* stack
+ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                     );
 
-errorStack  StackDstr   (Stack_t* stack
-ON_DBG_STACK(, FILE* DUMP_FILE)                                               );
-
-//------------------------------------------------------------------------------
-
-errorStack  StackPush   (Stack_t* stack, StackElem_t  value
-ON_DBG_STACK(, FILE* DUMP_FILE)                                               );
-
-errorStack  StackPop    (Stack_t* stack, StackElem_t* value
-ON_DBG_STACK(, FILE* DUMP_FILE)                                               );
+errorStack  StackDstr       (Stack_t* stack
+ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                     );
 
 //------------------------------------------------------------------------------
 
-errorStack  StackVerify (Stack_t* stack
-ON_DBG_STACK(, FILE* DUMP_FILE)                                               );
+errorStack  StackPush       (Stack_t* stack, StackElem_t  value
+ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                     );
+
+errorStack  StackPop        (Stack_t* stack, StackElem_t* value
+ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                     );
 
 //------------------------------------------------------------------------------
 
-errorStack  StackPrint  (Stack_t* stack
-ON_DBG_STACK(, FILE* DUMP_FILE)                                               );
+errorStack  StackVerify     (Stack_t* stack
+ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                     );
+
+//------------------------------------------------------------------------------
+
+errorStack  StackPrint      (Stack_t* stack
+ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                     );
+
+errorStack  logFullStack    (Stack_t* stack
+ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                     );
 
 //==============================================================================
 
 int main() {
-ON_DBG_STACK(
-FILE* DUMP_FILE = fopen("dump.log", "w");
-)
+ON_DBG_STACK()
 
     Stack_t stk1 = {};
 
-    StackCtor(&stk1
-ON_DBG_STACK(PASTE_DEBUG_INFO_ALIAS, DUMP_FILE)
-    );
+    // StackCtor(&stk1 ON_DBG_STACK(PASTE_DEBUG_INFO_ALIAS, DUMP_FILE));
 
-    StackPush(&stk1, 10);
-    StackPush(&stk1, 20);
+    // StackPush(&stk1, 10 ON_DBG_STACK(, DUMP_FILE));
+    // StackPush(&stk1, 20 ON_DBG_STACK(, DUMP_FILE));
 
     double x = 0;
 
-    StackPop(&stk1, &x);
-
-ON_DBG_STACK(
-printf("STACK FILE: %s\nSTACK LINE: %zu\nSTACK_FUNC: %s\n",
-        stk1.FILE, stk1.LINE, stk1.FUNC);
-)
+    // StackPop(&stk1, &x ON_DBG_STACK(, DUMP_FILE));
 
     printf("%lg\n", x);
 
-    StackDstr(&stk1);
+    // StackDstr(&stk1 ON_DBG_STACK());
 
     return 0;
 }
@@ -90,13 +105,11 @@ printf("STACK FILE: %s\nSTACK LINE: %zu\nSTACK_FUNC: %s\n",
 //==============================================================================
 
 errorStack StackCtor(Stack_t* stack
-ON_DBG_STACK(DEBUG_FUNCTION_ARGS, FILE* DUMP_FILE)                           ) {
+ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                    ) {
 
     if (stack == NULL) {
         return EMPTY_STACK_ADDRESS;
     }
-
-ON_DBG_STACK(DEBUG_INFO_TO_PROGRAM_OBJECT_STRUCT(stack))
 
     stack->data = (StackElem_t*)calloc(BASE_CAPACITY, sizeof(StackElem_t));
 
@@ -104,25 +117,37 @@ ON_DBG_STACK(DEBUG_INFO_TO_PROGRAM_OBJECT_STRUCT(stack))
         return MEMORY_ALLOCATION;
     }
 
-    stack->capacity = BASE_CAPACITY - 2;
+    stack->capacity = BASE_CAPACITY;
     stack->size = 0;
+
+
+#ifdef DUMP_CTOR_DSTR
+log("[%s/%s] stack_t \"%s\" [address: %p] created by %s at %s:%zu\n",
+    DATE, TIME, STACK_NAME, stack, FUNC, FILE_NAME, LINE             );
+#endif
+
 
     return OK;
 }
 
 errorStack StackDstr(Stack_t* stack
-ON_DBG_STACK(, FILE* DUMP_FILE)                                              ) {
+ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                    ) {
 
     if (stack == NULL) {
         return EMPTY_STACK_ADDRESS;
     }
 
-ON_DBG_STACK(DEBUG_INFO_RESET(stack))
-
     free(stack->data);
 
-    stack->size = POISON_VALUE0;
+    stack->size = POISON_VALUE;
     stack->capacity = POISON_VALUE;
+
+
+#ifdef DUMP_CTOR_DSTR
+log("[%s/%s] stack_t \"%s\" destroyed by %s at %s:%zu\n",
+    DATE, TIME, STACK_NAME, FUNC, FILE_NAME, LINE        );
+#endif
+
 
     return OK;
 }
@@ -130,7 +155,7 @@ ON_DBG_STACK(DEBUG_INFO_RESET(stack))
 //------------------------------------------------------------------------------
 
 errorStack StackPush(Stack_t* stack, StackElem_t value
-ON_DBG_STACK(, FILE* DUMP_FILE)                                              ) {
+ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                    ) {
 
     if (stack == NULL) {
         return EMPTY_STACK_ADDRESS;
@@ -147,10 +172,13 @@ ON_DBG_STACK(, FILE* DUMP_FILE)                                              ) {
             return MEMORY_ALLOCATION;
         }
 
-#ifdef CAPACITY_CHANGE_PRINT
-printf("CAPACITY INCREASED, OLD/NEW CAPACITY: %zu/%zu\n",
-                                stack->capacity, newCapacity);
+
+#ifdef DUMP_CAPACITY_CHANGE
+log("[%s/%s] stack_t \"%s\" [address: %p] changed capacity by %s at %s:%zu"
+    "old/new capacity: %zu/%zu", DATE, TIME, STACK_NAME, stack, FUNC,
+    FILE_NAME, LINE, stack->capacity, newCapacity                    );
 #endif
+
 
         stack->capacity = newCapacity;
         stack->data = newData;
@@ -159,11 +187,18 @@ printf("CAPACITY INCREASED, OLD/NEW CAPACITY: %zu/%zu\n",
     stack->data[stack->size] = value;
     stack->size++;
 
+
+#ifdef DUMP_PUSH_POP
+log("[%s/%s] stack_t \"%s\" pushed by %s at %s:%zu\n", // Сделать вывод значения подгоняемого типа
+    DATE, TIME, STACK_NAME, FUNC, FILE_NAME, LINE     );
+#endif
+
+
     return OK;
 }
 
 errorStack StackPop(Stack_t* stack, StackElem_t* value
-ON_DBG_STACK(, FILE* DUMP_FILE)                                              ) {
+ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                    ) {
 
     if (stack == NULL) {
         return EMPTY_STACK_ADDRESS;
@@ -177,6 +212,13 @@ ON_DBG_STACK(, FILE* DUMP_FILE)                                              ) {
     *value = stack->data[stack->size - 1];
     stack->size--;
 
+
+#ifdef DUMP_PUSH_POP
+log("[%s/%s] stack_t \"%s\" poped by %s at %s:%zu\n",
+    DATE, TIME, STACK_NAME, FUNC, FILE_NAME, LINE    );
+#endif
+
+
     if ((double)(stack->capacity / stack->size) > MAX_DECREASE_GAP
                && (double)stack->capacity / MAX_DECREASE_GAP >= BASE_CAPACITY) {
 
@@ -189,10 +231,13 @@ ON_DBG_STACK(, FILE* DUMP_FILE)                                              ) {
             return MEMORY_ALLOCATION;
         }
 
-#ifdef CAPACITY_CHANGE_PRINT
-printf("CAPACITY DECREASED, OLD/NEW CAPACITY: %zu/%zu\n",
-                                stack->capacity, newCapacity);
+
+#ifdef DUMP_CAPACITY_CHANGE
+log("[%s/%s] stack_t \"%s\" [address: %p] changed capacity by %s at %s:%zu"
+    "old/new capacity: %zu/%zu", DATE, TIME, STACK_NAME, stack, FUNC,
+    FILE_NAME, LINE, stack->capacity, newCapacity                    );
 #endif
+
 
         stack->capacity = newCapacity;
         stack->data = newData;
@@ -204,11 +249,36 @@ printf("CAPACITY DECREASED, OLD/NEW CAPACITY: %zu/%zu\n",
 //------------------------------------------------------------------------------
 
 errorStack StackVerify(Stack_t* stack
-ON_DBG_STACK(, FILE* DUMP_FILE)                                              ) {
+ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                    ) {
 
     if (stack == NULL) {
         return EMPTY_STACK_ADDRESS;
     }
+
+    return OK;
+}
+
+errorStack logFullStack(Stack_t* stack
+ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                    ) {
+
+    if (stack == NULL) {
+        return EMPTY_STACK_ADDRESS;
+    }
+
+    log("[%s/%s] stack_t \"%s\" [address: %p] printed by %s at %s:%zu\n",
+    DATE, TIME, STACK_NAME, stack, FUNC, FILE_NAME, LINE                 );
+
+    log("|capacity = %zu\n|size = %zu\n|data[%p]\n{",
+        stack->capacity, stack->size, stack          );
+
+    for (size_t i = 0; i < stack->capacity; i++) {
+        if (i < stack->size) {
+            log("*");
+        }
+        log("[%zu] = " PRINT_DATA "\n", i, stack->data[i]);
+    }
+
+    log("}\n");
 
     return OK;
 }
