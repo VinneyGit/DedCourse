@@ -79,7 +79,7 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                   );
 errorStack  StackPrint      (Stack_t* stack
 ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                   );
 
-errorStack  logFullStack    (Stack_t* stack,
+errorStack  logFullStack    (Stack_t* stack
 ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                   );
 
 //==============================================================================
@@ -292,7 +292,7 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
 */
 //------------------------------------------------------------------------------
 
-errorStack logFullStack(Stack_t* stack,
+errorStack logFullStack(Stack_t* stack
 ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
 
     if (stack == NULL) {
