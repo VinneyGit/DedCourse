@@ -79,7 +79,7 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                   );
 errorStack  StackPrint      (Stack_t* stack
 ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                   );
 
-errorStack  logFullStack    (Stack_t* stack
+errorStack  logFullStack    (Stack_t* stack,
 ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                   );
 
 //==============================================================================
@@ -152,6 +152,7 @@ logFullStack(stack, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME);
 
     free(stack->data);
 
+    stack->data = NULL;
     stack->size = POISON_VALUE;
     stack->capacity = POISON_VALUE;
 
@@ -181,19 +182,19 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
         StackElem_t* newData = (StackElem_t*)realloc(stack->data,
                                              newCapacity * sizeof(StackElem_t));
 
-        for (size_t i = stack->size; i < newCapacity; i++) {
-            newData[i] = 0;
-        }
-
         if (newData == NULL) {
             return MEMORY_ALLOCATION;
+        }
+
+        for (size_t i = stack->size; i < newCapacity; i++) {
+            newData[i] = 0;
         }
 
 
 #ifdef DUMP_CAPACITY_CHANGE
 log("[%s/%s] stack_t \"%s\" [address: %p] changed capacity by %s at %s:%zu"
-    "old/new capacity: %zu/%zu", DATE, TIME, STACK_NAME, stack, FUNC,
-    FILE_NAME, LINE, stack->capacity, newCapacity                    );
+    "old/new capacity: %zu/%zu\n", DATE, TIME, STACK_NAME, stack, FUNC,
+    FILE_NAME, LINE, stack->capacity, newCapacity                      );
 #endif
 
 
@@ -235,12 +236,12 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
 
 
 #ifdef DUMP_PUSH_POP
-log("[%s/%s] stack_t \"%s\" poped by %s at %s:%zu\n",
-    DATE, TIME, STACK_NAME, FUNC, FILE_NAME, LINE    );
+log("[%s/%s] stack_t \"%s\" popped by %s at %s:%zu\n",
+    DATE, TIME, STACK_NAME, FUNC, FILE_NAME, LINE     );
 #endif
 
 
-    if ((double)(stack->capacity / stack->size) > MAX_DECREASE_GAP
+    if ((double)(stack->capacity / stack->size) > MAX_DECREASE_GAP //TODO Проверка
                && (double)stack->capacity / MAX_DECREASE_GAP >= BASE_CAPACITY) {
 
         size_t newCapacity = stack->capacity / MAX_DECREASE_GAP;
@@ -248,19 +249,19 @@ log("[%s/%s] stack_t \"%s\" poped by %s at %s:%zu\n",
         StackElem_t* newData = (StackElem_t*)realloc(stack->data,
                                              newCapacity * sizeof(StackElem_t));
 
-        for (size_t i = stack->size; i < newCapacity; i++) {
-            newData[i] = 0;
-        }
-
         if (newData == NULL) {
             return MEMORY_ALLOCATION;
+        }
+
+        for (size_t i = stack->size; i < newCapacity; i++) {
+            newData[i] = 0;
         }
 
 
 #ifdef DUMP_CAPACITY_CHANGE
 log("[%s/%s] stack_t \"%s\" [address: %p] changed capacity by %s at %s:%zu"
-    "old/new capacity: %zu/%zu", DATE, TIME, STACK_NAME, stack, FUNC,
-    FILE_NAME, LINE, stack->capacity, newCapacity                    );
+    "old/new capacity: %zu/%zu\n", DATE, TIME, STACK_NAME, stack, FUNC,
+    FILE_NAME, LINE, stack->capacity, newCapacity                      );
 #endif
 
 
@@ -292,7 +293,7 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
 //------------------------------------------------------------------------------
 
 errorStack logFullStack(Stack_t* stack,
-                        DEBUG_FUNCTION_ARGS, const char* STACK_NAME          ) {
+ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
 
     if (stack == NULL) {
         return EMPTY_STACK_ADDRESS;
