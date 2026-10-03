@@ -44,7 +44,7 @@ void logStart() {
 
     assert(DUMP_LOG_FILE);
 
-    fprintf(DUMP_LOG_FILE, "Log started\n");
+    fprintf(DUMP_LOG_FILE, "[%s/%s] Log started\n", __DATE__, __TIME__);
 }
 
 //------------------------------------------------------------------------------
