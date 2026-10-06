@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
     if (CreateOutputFile(OUTPUT_PATH, &OutputFile) == ERROR) {
         return -1;
     }
-    
+
     qsort(text.lines, text.linesAmount, sizeof(String), &ComparatorBegin);
     if (WriteToFile(OutputFile, &text, 0) == ERROR) {
         return -1;
@@ -193,7 +193,7 @@ error ReadFromFileToBuffer(const char* fileName, Text* text) {
 
 //==============================================================================
 
-void BufferSplit(Text* text) {
+void BufferSplit(Text* text) { //TODO EASIER
     assert(text);
 
     char* substr = text->buffer;

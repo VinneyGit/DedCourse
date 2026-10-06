@@ -50,12 +50,12 @@ void logStart() {
 //------------------------------------------------------------------------------
 
 void log(const char* format, ...) {
-    va_list argumentsList;
-    va_start(argumentsList, format);
-
     if (DUMP_LOG_FILE == NULL) {
         return;
     }
+
+    va_list argumentsList;
+    va_start(argumentsList, format);
 
     vfprintf(DUMP_LOG_FILE, format, argumentsList);
 
@@ -65,5 +65,9 @@ void log(const char* format, ...) {
 //------------------------------------------------------------------------------
 
 void logClose() {
+    if (DUMP_LOG_FILE == NULL) {
+        return;
+    }
+
     fclose(DUMP_LOG_FILE);
 }

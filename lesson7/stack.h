@@ -9,6 +9,12 @@
 #define ON_DBG_STACK(...)
 #endif
 
+#ifndef OFF_CANARY
+#define CANARY_STACK(...) __VA_ARGS__
+#else
+#define CANARY_STACK(...)
+#endif
+
 //==============================================================================
 
 // #include <stddef.h> ???
@@ -16,8 +22,9 @@
 //==============================================================================
 
 typedef double StackElem_t;
-#define PRINT_DATA "%lg"
+#define PRINT_DATA_TYPE "%lg"
 
+//TODO добавить тип канарейки??
 //TODO сделать отдельные cap и size для canary
 
 const size_t    BASE_CAPACITY           = 7;
@@ -49,6 +56,20 @@ typedef struct {
     unsigned long long             finishStruct;
 
 } Stack_t;
+
+//==============================================================================
+
+typedef enum {
+    OK,
+    MEMORY_ALLOCATION,
+    POP_EMPTY_STACK,
+    STACK_DESTROYED,
+
+    EMPTY_STACK_ADDRESS,
+    EMPTY_DATA_ADDRESS,
+    SIZE_BIGGER_CAPACITY
+
+} errorStack;
 
 //==============================================================================
 

@@ -15,6 +15,8 @@
 #define DUMP_EVERY_VERIFY
 
 #define OFF_CANARY
+#define DELETE_CORRUPTED_STACK
+// #define OFF_VERIFY
 
 //------------------------------------------------------------------------------
 
@@ -39,19 +41,12 @@
 
 //==============================================================================
 
-typedef enum {
-    OK                      = 0,
-    EMPTY_STACK_ADDRESS     = 1,
-    MEMORY_ALLOCATION       = 2,
-    POP_EMPTY_STACK         = 3,
-    STACK_DESTROYED         = 4
-} errorStack;
-
 //TODO add canary
 //TODO print
 //TODO size no errorStack
 //TODO is_empty no errorStack
 //TODO clear
+//TODO сделать #ifdef через макросы по другому
 
 //==============================================================================
 
@@ -76,11 +71,10 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                   );
 
 //------------------------------------------------------------------------------
 
-errorStack  StackPrint      (Stack_t* stack
-ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                   );
-
-errorStack  logFullStack    (Stack_t* stack
-ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                   );
+ON_DBG_STACK                                                                   (
+errorStack  logFullStack    (Stack_t* stack, DEBUG_FUNCTION_ARGS,
+const char* STACK_NAME                                                        );
+                                                                               )
 
 //==============================================================================
 
@@ -98,9 +92,17 @@ int main() {
 
     printf("%lg\n", x);
 
-    for (int i = 0; i < 67; i++) {
+    for (int i = 0; i < 20; i++) {
         StackPush(&stk1, i ON_DBG_STACK(, DEBUG_INFO_ALIAS, VAR_NAME(stk1)));
     }
+
+    // printf("<\n");
+    for (size_t i = 20; i > 0; i--) {
+        StackPop(&stk1, &x ON_DBG_STACK(, DEBUG_INFO_ALIAS, VAR_NAME(stk1)));
+
+        printf("<\t" PRINT_DATA_TYPE "\t>\n", x);
+    }
+    // printf(">\n");
 
     StackDstr(&stk1 ON_DBG_STACK(, DEBUG_INFO_ALIAS, VAR_NAME(stk1)));
 
@@ -114,9 +116,11 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
 
 ON_DBG_STACK(logStart();)
 
+
     if (stack == NULL) {
         return EMPTY_STACK_ADDRESS;
     }
+
 
     stack->data = (StackElem_t*)calloc(BASE_CAPACITY, sizeof(StackElem_t));
 
@@ -128,11 +132,18 @@ ON_DBG_STACK(logStart();)
     stack->size = 0;
 
 
-#ifdef DUMP_CTOR_DSTR
-log("[%s/%s] stack_t \"%s\" [address: %p] created by %s at %s:%zu\n",
-    DATE, TIME, STACK_NAME, stack, FUNC, FILE_NAME, LINE             );
-#endif
+    #ifdef DUMP_CTOR_DSTR
+    log("[%s/%s] stack_t \"%s\" [address: %p] created by %s at %s:%zu\n",
+        DATE, TIME, STACK_NAME, stack, FUNC, FILE_NAME, LINE             );
+    #endif
 
+
+    errorStack verifyError = StackVerify(stack
+    ON_DBG_STACK(, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME));
+
+    if (verifyError != OK) {
+        return verifyError;
+    }
 
     return OK;
 }
@@ -141,14 +152,18 @@ errorStack StackDstr(Stack_t* stack
 ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
 
 
-#ifdef DUMP_BEFORE_DESTROY
-logFullStack(stack, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME);
-#endif
+    errorStack verifyError = StackVerify(stack
+    ON_DBG_STACK(, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME));
 
-
-    if (stack == NULL) {
-        return EMPTY_STACK_ADDRESS;
+    if (verifyError != OK) {
+        return verifyError;
     }
+
+
+    #ifdef DUMP_BEFORE_DESTROY
+    logFullStack(stack, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME);
+    #endif
+
 
     free(stack->data);
 
@@ -157,11 +172,13 @@ logFullStack(stack, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME);
     stack->capacity = POISON_VALUE;
 
 
-#ifdef DUMP_CTOR_DSTR
-log("[%s/%s] stack_t \"%s\" destroyed by %s at %s:%zu\n",
-    DATE, TIME, STACK_NAME, FUNC, FILE_NAME, LINE        );
-#endif
+    #ifdef DUMP_CTOR_DSTR
+    log("[%s/%s] stack_t \"%s\" destroyed by %s at %s:%zu\n",
+        DATE, TIME, STACK_NAME, FUNC, FILE_NAME, LINE        );
+    #endif
 
+
+    ON_DBG_STACK(logClose();)
 
     return STACK_DESTROYED;
 }
@@ -171,8 +188,12 @@ log("[%s/%s] stack_t \"%s\" destroyed by %s at %s:%zu\n",
 errorStack StackPush(Stack_t* stack, StackElem_t value
 ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
 
-    if (stack == NULL) {
-        return EMPTY_STACK_ADDRESS;
+
+    errorStack verifyError = StackVerify(stack
+    ON_DBG_STACK(, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME));
+
+    if (verifyError != OK) {
+        return verifyError;
     }
 
 
@@ -191,11 +212,11 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
         }
 
 
-#ifdef DUMP_CAPACITY_CHANGE
-log("[%s/%s] stack_t \"%s\" [address: %p] changed capacity by %s at %s:%zu"
-    "old/new capacity: %zu/%zu\n", DATE, TIME, STACK_NAME, stack, FUNC,
-    FILE_NAME, LINE, stack->capacity, newCapacity                      );
-#endif
+    #ifdef DUMP_CAPACITY_CHANGE
+    log("[%s/%s] stack_t \"%s\" [address: %p] changed capacity by %s at %s:%zu, "
+        "old/new capacity: %zu/%zu\n", DATE, TIME, STACK_NAME, stack, FUNC,
+        FILE_NAME, LINE, stack->capacity, newCapacity                      );
+    #endif
 
 
         stack->capacity = newCapacity;
@@ -206,14 +227,24 @@ log("[%s/%s] stack_t \"%s\" [address: %p] changed capacity by %s at %s:%zu"
     stack->size++;
 
 
-#ifdef DUMP_PUSH_POP
-log("[%s/%s] stack_t \"%s\" pushed by %s at %s:%zu\n", // Сделать вывод значения подгоняемого типа
-    DATE, TIME, STACK_NAME, FUNC, FILE_NAME, LINE     );
-#endif
+    #ifdef DUMP_PUSH_POP
+    log("[%s/%s] stack_t \"%s\" pushed by %s at %s:%zu\n", // ???Сделать вывод значения подгоняемого типа
+        DATE, TIME, STACK_NAME, FUNC, FILE_NAME, LINE     );
+    #endif
 
-#ifdef DUMP_EVERY_PUSH
-logFullStack(stack, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME);
-#endif
+
+    #ifdef DUMP_EVERY_PUSH
+    logFullStack(stack, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME);
+    #endif
+
+
+    verifyError = StackVerify(stack
+    ON_DBG_STACK(, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME));
+
+
+    if (verifyError != OK) {
+        return verifyError;
+    }
 
 
     return OK;
@@ -222,8 +253,12 @@ logFullStack(stack, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME);
 errorStack StackPop(Stack_t* stack, StackElem_t* value
 ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
 
-    if (stack == NULL) {
-        return EMPTY_STACK_ADDRESS;
+
+    errorStack verifyError = StackVerify(stack
+    ON_DBG_STACK(, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME));
+
+    if (verifyError != OK) {
+        return verifyError;
     }
 
 
@@ -233,16 +268,17 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
 
     *value = stack->data[stack->size - 1];
     stack->size--;
+    stack->data[stack->size] = 0;
 
 
-#ifdef DUMP_PUSH_POP
-log("[%s/%s] stack_t \"%s\" popped by %s at %s:%zu\n",
-    DATE, TIME, STACK_NAME, FUNC, FILE_NAME, LINE     );
-#endif
+    #ifdef DUMP_PUSH_POP
+    log("[%s/%s] stack_t \"%s\" popped by %s at %s:%zu\n",
+        DATE, TIME, STACK_NAME, FUNC, FILE_NAME, LINE     );
+    #endif
 
 
-    if ((double)(stack->capacity / stack->size) > MAX_DECREASE_GAP //TODO Проверка
-               && (double)stack->capacity / MAX_DECREASE_GAP >= BASE_CAPACITY) {
+    if (stack->capacity > stack->size * MAX_DECREASE_GAP //TODO Проверка
+               && stack->capacity >= BASE_CAPACITY * MAX_DECREASE_GAP) {
 
         size_t newCapacity = stack->capacity / MAX_DECREASE_GAP;
 
@@ -258,11 +294,11 @@ log("[%s/%s] stack_t \"%s\" popped by %s at %s:%zu\n",
         }
 
 
-#ifdef DUMP_CAPACITY_CHANGE
-log("[%s/%s] stack_t \"%s\" [address: %p] changed capacity by %s at %s:%zu"
-    "old/new capacity: %zu/%zu\n", DATE, TIME, STACK_NAME, stack, FUNC,
-    FILE_NAME, LINE, stack->capacity, newCapacity                      );
-#endif
+        #ifdef DUMP_CAPACITY_CHANGE
+        log("[%s/%s] stack_t \"%s\" [address: %p] changed capacity by %s at %s:%zu, "
+            "old/new capacity: %zu/%zu\n", DATE, TIME, STACK_NAME, stack, FUNC,
+            FILE_NAME, LINE, stack->capacity, newCapacity                      );
+        #endif
 
 
         stack->capacity = newCapacity;
@@ -270,16 +306,25 @@ log("[%s/%s] stack_t \"%s\" [address: %p] changed capacity by %s at %s:%zu"
     }
 
 
-#ifdef DUMP_EVERY_POP
-logFullStack(stack, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME);
-#endif
+    #ifdef DUMP_EVERY_POP
+    logFullStack(stack, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME);
+    #endif
+
+
+    verifyError = StackVerify(stack
+    ON_DBG_STACK(, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME));
+
+    if (verifyError != OK) {
+        return verifyError;
+    }
 
 
     return OK;
 }
 
 //------------------------------------------------------------------------------
-/*
+
+#ifndef OFF_VERIFY
 errorStack StackVerify(Stack_t* stack
 ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
 
@@ -287,13 +332,46 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
         return EMPTY_STACK_ADDRESS;
     }
 
+    #ifdef DUMP_EVERY_VERIFY
+    logFullStack(stack, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME);
+    #endif
+
+    if (stack->data == NULL) {
+        return EMPTY_DATA_ADDRESS;
+    }
+
+    if (stack->size > stack->capacity) {
+        return SIZE_BIGGER_CAPACITY;
+    }
+
+
+    #ifdef DUMP_EVERY_VERIFY
+    log("[%s/%s] stack_t \"%s\" [address: %p] verified by %s at %s:%zu\n",
+        DATE, TIME, STACK_NAME, stack, FUNC, FILE_NAME, LINE              );
+    #endif
+
+
     return OK;
 }
-*/
+#else
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
+errorStack StackVerify(Stack_t* stack
+ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
+
+    return OK;
+}
+
+#pragma GCC diagnostic pop
+#endif
+
 //------------------------------------------------------------------------------
 
-errorStack logFullStack(Stack_t* stack
-ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
+ON_DBG_STACK                                                                   (
+errorStack logFullStack(Stack_t* stack , DEBUG_FUNCTION_ARGS,
+                        const char* STACK_NAME                               ) {
 
     if (stack == NULL) {
         return EMPTY_STACK_ADDRESS;
@@ -312,10 +390,11 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
         else {
             log("    ");
         }
-        log("[%zu] = " PRINT_DATA "\n", i, stack->data[i]);
+        log("[%zu] = " PRINT_DATA_TYPE "\n", i, stack->data[i]);
     }
 
     log("}\n");
 
     return OK;
 }
+                                                                               )
