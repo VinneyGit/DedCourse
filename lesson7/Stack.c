@@ -3,40 +3,9 @@
 
 //------------------------------------------------------------------------------
 
-#define STACK_DEBUG
-
-#define DUMP_CTOR_DSTR
-#define DUMP_PUSH_POP
-#define DUMP_CAPACITY_CHANGE
-#define DUMP_VERIFY
-#define DUMP_EVERY_PUSH
-#define DUMP_EVERY_POP
-#define DUMP_BEFORE_DESTROY
-#define DUMP_EVERY_VERIFY
-
-#define OFF_CANARY
-#define DELETE_CORRUPTED_STACK
-// #define OFF_VERIFY
-
-//------------------------------------------------------------------------------
-
-#ifndef STACK_DEBUG
-
-#undef DUMP_CTOR_DSTR
-#undef DUMP_PUSH_POP
-#undef DUMP_CAPACITY_CHANGE
-#undef DUMP_VERIFY
-#undef DUMP_EVERY_PUSH
-#undef DUMP_EVERY_POP
-#undef DUMP_BEFORE_DESTROY
-#undef DUMP_EVERY_VERIFY
-
-#endif
-
-//------------------------------------------------------------------------------
-
-#include "Error.h"
 #include "Stack.h"
+
+#include "Log.h"
 #include "Log.c"
 
 //==============================================================================
@@ -45,39 +14,11 @@
 //TODO print
 //TODO size no errorStack
 //TODO is_empty no errorStack
-//TODO clear
-//TODO сделать #ifdef через макросы по другому
+//TODO clear и сделать отдельную функцию перераспределения памяти?
+//TODO сделать удаление повреждённого стека
 
 //==============================================================================
-
-errorStack  StackCtor       (Stack_t* stack
-ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                   );
-
-errorStack  StackDstr       (Stack_t* stack
-ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                   );
-
-//------------------------------------------------------------------------------
-
-errorStack  StackPush       (Stack_t* stack, StackElem_t  value
-ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                   );
-
-errorStack  StackPop        (Stack_t* stack, StackElem_t* value
-ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                   );
-
-//------------------------------------------------------------------------------
-
-errorStack  StackVerify     (Stack_t* stack
-ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                   );
-
-//------------------------------------------------------------------------------
-
-ON_DBG_STACK                                                                   (
-errorStack  logFullStack    (Stack_t* stack, DEBUG_FUNCTION_ARGS,
-const char* STACK_NAME                                                        );
-                                                                               )
-
-//==============================================================================
-
+/*
 int main() {
     Stack_t stk1 = {};
 
@@ -108,7 +49,7 @@ int main() {
 
     return 0;
 }
-
+*/
 //==============================================================================
 
 errorStack StackCtor(Stack_t* stack
@@ -122,7 +63,24 @@ ON_DBG_STACK(logStart();)
     }
 
 
+    #ifndef OFF_STACK_CANARY
+
+    size_t dataSizeWithCan = BASE_CAPACITY * sizeof(StackElem_t)
+                                       + 2 * sizeof(Canary_t);
+
+    char* rawMemory = (char*)calloc(dataSizeWithCan, 1);
+
+    *(Canary_t*)rawMemory = CAN_DATA_START;
+    *(Canary_t*)(rawMemory + sizeof(Canary_t) + dataSizeWithCan)
+                                                              = CAN_DATA_FINISH;
+    stack->data = (StackElem_t*)(rawMemory + 1);
+
+    #else
+
     stack->data = (StackElem_t*)calloc(BASE_CAPACITY, sizeof(StackElem_t));
+
+    #endif
+
 
     if (stack->data == NULL) {
         return MEMORY_ALLOCATION;
@@ -130,7 +88,6 @@ ON_DBG_STACK(logStart();)
 
     stack->capacity = BASE_CAPACITY;
     stack->size = 0;
-
 
     #ifdef DUMP_CTOR_DSTR
     log("[%s/%s] stack_t \"%s\" [address: %p] created by %s at %s:%zu\n",
@@ -141,11 +98,11 @@ ON_DBG_STACK(logStart();)
     errorStack verifyError = StackVerify(stack
     ON_DBG_STACK(, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME));
 
-    if (verifyError != OK) {
+    if (verifyError != STACK_OK) {
         return verifyError;
     }
 
-    return OK;
+    return STACK_OK;
 }
 
 errorStack StackDstr(Stack_t* stack
@@ -155,7 +112,7 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
     errorStack verifyError = StackVerify(stack
     ON_DBG_STACK(, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME));
 
-    if (verifyError != OK) {
+    if (verifyError != STACK_OK) {
         return verifyError;
     }
 
@@ -165,7 +122,21 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
     #endif
 
 
+    #ifndef OFF_STACK_CANARY
+
+    size_t dataSizeWithCan = stack->capacity * sizeof(StackElem_t)
+                                       + 2 * sizeof(Canary_t);
+
+    char* rawMemory = (char*)stack->data - sizeof(Canary_t);
+
+    *(Canary_t*)rawMemory = CANARY_POISON;
+    *(Canary_t*)(rawMemory + sizeof(Canary_t) + dataSizeWithCan)
+                                                                = CANARY_POISON;
+
+    #endif
+
     free(stack->data);
+
 
     stack->data = NULL;
     stack->size = POISON_VALUE;
@@ -192,7 +163,7 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
     errorStack verifyError = StackVerify(stack
     ON_DBG_STACK(, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME));
 
-    if (verifyError != OK) {
+    if (verifyError != STACK_OK) {
         return verifyError;
     }
 
@@ -242,12 +213,12 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
     ON_DBG_STACK(, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME));
 
 
-    if (verifyError != OK) {
+    if (verifyError != STACK_OK) {
         return verifyError;
     }
 
 
-    return OK;
+    return STACK_OK;
 }
 
 errorStack StackPop(Stack_t* stack, StackElem_t* value
@@ -257,7 +228,7 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
     errorStack verifyError = StackVerify(stack
     ON_DBG_STACK(, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME));
 
-    if (verifyError != OK) {
+    if (verifyError != STACK_OK) {
         return verifyError;
     }
 
@@ -314,12 +285,12 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
     verifyError = StackVerify(stack
     ON_DBG_STACK(, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME));
 
-    if (verifyError != OK) {
+    if (verifyError != STACK_OK) {
         return verifyError;
     }
 
 
-    return OK;
+    return STACK_OK;
 }
 
 //------------------------------------------------------------------------------
@@ -332,26 +303,26 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
         return EMPTY_STACK_ADDRESS;
     }
 
-    #ifdef DUMP_EVERY_VERIFY
+    #ifdef DUMP_VERIFY
     logFullStack(stack, FILE_NAME, LINE, FUNC, TIME, DATE, STACK_NAME);
     #endif
 
     if (stack->data == NULL) {
         return EMPTY_DATA_ADDRESS;
     }
-
+// TODO проверять чистоту памяти
     if (stack->size > stack->capacity) {
         return SIZE_BIGGER_CAPACITY;
     }
 
 
-    #ifdef DUMP_EVERY_VERIFY
+    #ifdef DUMP_VERIFY
     log("[%s/%s] stack_t \"%s\" [address: %p] verified by %s at %s:%zu\n",
         DATE, TIME, STACK_NAME, stack, FUNC, FILE_NAME, LINE              );
     #endif
 
 
-    return OK;
+    return STACK_OK;
 }
 #else
 
@@ -361,7 +332,7 @@ ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
 errorStack StackVerify(Stack_t* stack
 ON_DBG_STACK(, DEBUG_FUNCTION_ARGS, const char* STACK_NAME)                  ) {
 
-    return OK;
+    return STACK_OK;
 }
 
 #pragma GCC diagnostic pop
@@ -395,6 +366,6 @@ errorStack logFullStack(Stack_t* stack , DEBUG_FUNCTION_ARGS,
 
     log("}\n");
 
-    return OK;
+    return STACK_OK;
 }
                                                                                )
