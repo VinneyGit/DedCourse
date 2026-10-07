@@ -10,7 +10,7 @@
 
 // #define STACK_DEBUG
 
-#include "Сomparators.c"
+#include "Comparators.c"
 #include "../lesson7/Stack.h"
 #include "../lesson7/Stack.c"
 
